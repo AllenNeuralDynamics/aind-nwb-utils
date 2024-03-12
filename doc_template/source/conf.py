@@ -7,7 +7,7 @@
 from os.path import dirname, abspath
 from pathlib import Path
 from datetime import date
-from aind_library_template import __version__ as package_version
+from aind_nwb_utils import __version__ as package_version
 
 INSTITUTE_NAME = "Allen Institute for Neural Dynamics"
 
