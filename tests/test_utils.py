@@ -4,7 +4,6 @@ import unittest
 from pathlib import Path
 
 from pynwb import NWBHDF5IO
-from pathlib import Path
 
 from aind_nwb_utils.nwb_io import determine_io
 from aind_nwb_utils.utils import combine_nwb_file
@@ -15,6 +14,7 @@ class TestUtils(unittest.TestCase):
 
     @classmethod
     def setUp(cls):
+        """Set up the test class"""
         cls.eye_tracking_fp = Path(
             "tests/resources/multiplane-ophys_eye-tracking"
         )
