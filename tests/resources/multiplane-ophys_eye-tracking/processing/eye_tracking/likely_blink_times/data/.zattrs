@@ -1,0 +1,7 @@
+{
+    "conversion": 1.0,
+    "offset": 0.0,
+    "resolution": -1.0,
+    "unit": "is_blink",
+    "zarr_dtype": "bool_"
+}
