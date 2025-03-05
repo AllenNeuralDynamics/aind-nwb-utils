@@ -11,7 +11,7 @@ from pynwb import NWBHDF5IO
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
 
 
-def add_nwb_attribute(
+def get_nwb_attribute(
     main_io: Union[NWBHDF5IO, NWBZarrIO], sub_io: Union[NWBHDF5IO, NWBZarrIO]
 ) -> Union[NWBHDF5IO, NWBZarrIO]:
     """Get an attribute from the NWB file
