@@ -20,8 +20,8 @@ class TestUtils(unittest.TestCase):
         )
         cls.behavior_fp = Path("tests/resources/multiplan-ophys_behavior.nwb")
 
-    def test_add_nwb_attribute(self):
-        """Test add_nwb_attribute function"""
+    def test_get_nwb_attribute(self):
+        """Test get_nwb_attribute function"""
         result = combine_nwb_file(
             self.behavior_fp, self.eye_tracking_fp, NWBHDF5IO
         )

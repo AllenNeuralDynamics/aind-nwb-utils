@@ -76,7 +76,7 @@ def combine_nwb_file(main_nwb_fp: Path, sub_nwb_fp: Path, save_io) -> Path:
         main_nwb = main_io.read()
         with sub_io(sub_nwb_fp, "r") as read_io:
             sub_nwb = read_io.read()
-            main_nwb = add_nwb_attribute(main_nwb, sub_nwb)
+            main_nwb = get_nwb_attribute(main_nwb, sub_nwb)
             with save_io(scratch_fp, "w") as io:
                 io.export(src_io=main_io, write_args=dict(link_data=False))
     return scratch_fp
