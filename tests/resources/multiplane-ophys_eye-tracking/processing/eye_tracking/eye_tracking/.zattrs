@@ -1,0 +1,18 @@
+{
+    "colnames": [
+        "name",
+        "reference_frame",
+        "data_x",
+        "data_y",
+        "area",
+        "area_raw",
+        "width",
+        "height",
+        "angle",
+        "timestamps"
+    ],
+    "description": "",
+    "namespace": "hdmf-common",
+    "neurodata_type": "DynamicTable",
+    "object_id": "d316c0d8-8f57-4fa0-974f-89b262dfeb8a"
+}

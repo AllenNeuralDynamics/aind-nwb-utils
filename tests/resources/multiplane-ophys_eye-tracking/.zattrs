@@ -1,0 +1,7 @@
+{
+    ".specloc": "specifications",
+    "namespace": "core",
+    "neurodata_type": "NWBFile",
+    "nwb_version": "2.8.0",
+    "object_id": "d3050f68-e655-459d-b6f0-04f52d5ad659"
+}

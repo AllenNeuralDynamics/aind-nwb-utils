@@ -1,0 +1,6 @@
+{
+    "namespace": "hdmf-common",
+    "neurodata_type": "ElementIdentifiers",
+    "object_id": "fd390149-45ce-46fc-a381-e8a400be1695",
+    "zarr_dtype": "int64"
+}
