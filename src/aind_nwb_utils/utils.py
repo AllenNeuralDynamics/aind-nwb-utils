@@ -53,7 +53,7 @@ def get_nwb_attribute(
     return main_io
 
 
-def combine_nwb_file(main_nwb_fp: Path, sub_nwb_fp: Path, save_dir: Path, save_io ) -> Path:
+def combine_nwb_file(main_nwb_fp: Path, sub_nwb_fp: Path, save_io) -> Path:
     """Combine two NWB files and save to scratch directory
 
     Parameters
@@ -71,7 +71,7 @@ def combine_nwb_file(main_nwb_fp: Path, sub_nwb_fp: Path, save_dir: Path, save_i
     """
     main_io = determine_io(main_nwb_fp)
     sub_io = determine_io(sub_nwb_fp)
-    scratch_fp = create_temp_nwb(save_dir, save_io)
+    scratch_fp = create_temp_nwb(save_io)
     with main_io(main_nwb_fp, "r") as main_io:
         main_nwb = main_io.read()
         with sub_io(sub_nwb_fp, "r") as read_io:
