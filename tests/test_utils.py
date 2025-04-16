@@ -1,12 +1,17 @@
 """Example test template."""
 
 import unittest
+import datetime
 from pathlib import Path
 
 from pynwb import NWBHDF5IO
+from pynwb import NWBFile
+from pynwb.base import Images  # example NWB container
+
+from unittest.mock import create_autospec
 
 from aind_nwb_utils.nwb_io import determine_io
-from aind_nwb_utils.utils import combine_nwb_file
+from aind_nwb_utils.utils import combine_nwb_file, is_non_mergeable, add_data
 
 
 class TestUtils(unittest.TestCase):
@@ -19,6 +24,24 @@ class TestUtils(unittest.TestCase):
             "tests/resources/multiplane-ophys_eye-tracking"
         )
         cls.behavior_fp = Path("tests/resources/multiplan-ophys_behavior.nwb")
+
+    def test_is_non_mergeable_false(self):
+        """Should return False for mergeable/custom container types"""
+        self.assertFalse(
+            is_non_mergeable(NWBFile("desc", "id", datetime.datetime.now()))
+        )
+
+    def test_add_data_to_acquisition(self):
+        """Test adding data to acquisition"""
+        nwbfile = create_autospec(NWBFile)
+        obj = create_autospec(Images)
+        obj.name = "test_image"
+
+        # Simulate no pre-existing object with this name
+        setattr(nwbfile, "acquisition", {})
+
+        add_data(nwbfile, "acquisition", obj.name, obj)
+        nwbfile.add_acquisition.assert_called_once_with(obj)
 
     def test_get_nwb_attribute(self):
         """Test get_nwb_attribute function"""
