@@ -11,30 +11,37 @@ from pynwb import NWBHDF5IO
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
 
 
+def is_non_mergeable(attr):
+    return isinstance(attr, (
+        str,
+        datetime.datetime,
+        list,
+        pynwb.file.Subject,
+    ))
+
+
+def add_data(main_io: Union[NWBHDF5IO, NWBZarrIO], field: str, name: str, obj):
+    obj.reset_parent()
+    obj.parent = main_io
+    existing = getattr(main_io, field, {})
+    if name in existing:
+        return
+    if field == "acquisition":
+        main_io.add_acquisition(obj)
+    elif field == "processing":
+        main_io.add_processing_module(obj)
+    elif field == "analysis":
+        main_io.add_analysis(obj)
+    elif field == "intervals":
+        main_io.add_time_intervals(obj)
+    else:
+        raise ValueError(f"Unknown attribute type: {field}")
+
+
 def get_nwb_attribute(
     main_io: Union[NWBHDF5IO, NWBZarrIO], sub_io: Union[NWBHDF5IO, NWBZarrIO]
 ) -> Union[NWBHDF5IO, NWBZarrIO]:
     """Merge attributes from sub_io into main_io."""
-
-    def is_non_mergeable(attr):
-        return isinstance(attr, (str, datetime.datetime, list, pynwb.file.Subject))
-
-    def add_data(field: str, name: str, obj):
-        obj.reset_parent()
-        obj.parent = main_io
-        existing = getattr(main_io, field, {})
-        if name in existing:
-            return
-        if field == "acquisition":
-            main_io.add_acquisition(obj)
-        elif field == "processing":
-            main_io.add_processing_module(obj)
-        elif field == "analysis":
-            main_io.add_analysis(obj)
-        elif field == "intervals":
-            main_io.add_time_intervals(obj)
-        else:
-            raise ValueError(f"Unknown attribute type: {field}")
 
     for field_name in sub_io.fields.keys():
         attr = getattr(sub_io, field_name)
@@ -51,7 +58,7 @@ def get_nwb_attribute(
 
         if hasattr(attr, "items"):
             for name, data in attr.items():
-                add_data(field_name, name, data)
+                add_data(main_io, field_name, name, data)
         else:
             raise TypeError(f"Unexpected type for {field_name}: {type(attr)}")
 
