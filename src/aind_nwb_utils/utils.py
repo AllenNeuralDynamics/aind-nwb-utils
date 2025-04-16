@@ -14,55 +14,46 @@ from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
 def get_nwb_attribute(
     main_io: Union[NWBHDF5IO, NWBZarrIO], sub_io: Union[NWBHDF5IO, NWBZarrIO]
 ) -> Union[NWBHDF5IO, NWBZarrIO]:
-    """Get an attribute from the NWB file
+    """Merge attributes from sub_io into main_io."""
 
-    Parameters
-    ----------
-    main_io : Union[NWBHDF5IO, NWBZarrIO]
-        the io object
-    sub_io : Union[NWBHDF5IO, NWBZarrIO]
-        the sub io object
+    def is_non_mergeable(attr):
+        return isinstance(attr, (str, datetime.datetime, list, pynwb.file.Subject))
 
-    Returns
-    -------
-    Any
-        the attribute
-    """
+    def add_data(field: str, name: str, obj):
+        obj.reset_parent()
+        obj.parent = main_io
+        existing = getattr(main_io, field, {})
+        if name in existing:
+            return
+        if field == "acquisition":
+            main_io.add_acquisition(obj)
+        elif field == "processing":
+            main_io.add_processing_module(obj)
+        elif field == "analysis":
+            main_io.add_analysis(obj)
+        elif field == "intervals":
+            main_io.add_time_intervals(obj)
+        else:
+            raise ValueError(f"Unknown attribute type: {field}")
+
     for field_name in sub_io.fields.keys():
-        attribute = getattr(sub_io, field_name)
+        attr = getattr(sub_io, field_name)
 
-        # Skip non-container attributes
-        if isinstance(attribute, (str, datetime.datetime, list, pynwb.file.Subject)):
+        if is_non_mergeable(attr):
             continue
 
-        # If the attribute is TimeIntervals, handle it separately
-        if isinstance(attribute, pynwb.epoch.TimeIntervals):
-            attribute.reset_parent()
-            attribute.parent = (
-                main_io  # 🔹 Explicitly set the parent to avoid orphan errors
-            )
+        if isinstance(attr, pynwb.epoch.TimeIntervals):
+            attr.reset_parent()
+            attr.parent = main_io
             if field_name == "intervals":
-                main_io.add_time_intervals(attribute)
-            continue  # Skip further processing
+                main_io.add_time_intervals(attr)
+            continue
 
-        # Handle dictionary-like attributes
-        if hasattr(attribute, "items"):
-            for name, data in attribute.items():
-                data.reset_parent()
-                data.parent = main_io  # 🔹 Explicitly set parent here as well
-                if name not in getattr(main_io, field_name, {}):
-                    if field_name == "acquisition":
-                        main_io.add_acquisition(data)
-                    elif field_name == "processing":
-                        main_io.add_processing_module(data)
-                    elif field_name == "analysis":
-                        main_io.add_analysis(data)
-                    elif field_name == "intervals":
-                        main_io.add_time_intervals(data)
-                    else:
-                        raise ValueError(f"Unknown attribute type: {field_name}")
+        if hasattr(attr, "items"):
+            for name, data in attr.items():
+                add_data(field_name, name, data)
         else:
-            raise TypeError(f"Unexpected type for {field_name}: {type(attribute)}")
+            raise TypeError(f"Unexpected type for {field_name}: {type(attr)}")
 
     return main_io
 
