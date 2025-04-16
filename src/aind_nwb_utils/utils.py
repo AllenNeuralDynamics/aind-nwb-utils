@@ -12,6 +12,20 @@ from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
 
 
 def is_non_mergeable(attr):
+    """
+    Check if an attribute is not suitable for merging into the NWB file.
+
+    Parameters
+    ----------
+    attr : Any
+        The attribute to check.
+
+    Returns
+    -------
+    bool
+        True if the attribute is a non-container type or
+        should be skipped during merging.
+    """
     return isinstance(attr, (
         str,
         datetime.datetime,
@@ -21,6 +35,21 @@ def is_non_mergeable(attr):
 
 
 def add_data(main_io: Union[NWBHDF5IO, NWBZarrIO], field: str, name: str, obj):
+    """
+    Add a data object to the appropriate field in the NWB file.
+
+    Parameters
+    ----------
+    main_io : Union[NWBHDF5IO, NWBZarrIO]
+        The main NWB file IO object to add data to.
+    field : str
+        The field of the NWB file to add to
+        (e.g., 'acquisition', 'processing').
+    name : str
+        The name of the object to be added.
+    obj : Any
+        The NWB container object to add.
+    """
     obj.reset_parent()
     obj.parent = main_io
     existing = getattr(main_io, field, {})
@@ -41,8 +70,22 @@ def add_data(main_io: Union[NWBHDF5IO, NWBZarrIO], field: str, name: str, obj):
 def get_nwb_attribute(
     main_io: Union[NWBHDF5IO, NWBZarrIO], sub_io: Union[NWBHDF5IO, NWBZarrIO]
 ) -> Union[NWBHDF5IO, NWBZarrIO]:
-    """Merge attributes from sub_io into main_io."""
+    """
+    Merge container-type attributes from one NWB file
+        (sub_io) into another (main_io).
 
+    Parameters
+    ----------
+    main_io : Union[NWBHDF5IO, NWBZarrIO]
+        The destination NWB file IO object.
+    sub_io : Union[NWBHDF5IO, NWBZarrIO]
+        The source NWB file IO object to merge from.
+
+    Returns
+    -------
+    Union[NWBHDF5IO, NWBZarrIO]
+        The modified main_io with attributes from sub_io merged in.
+    """
     for field_name in sub_io.fields.keys():
         attr = getattr(sub_io, field_name)
 
@@ -68,22 +111,25 @@ def get_nwb_attribute(
 def combine_nwb_file(
     main_nwb_fp: Path, sub_nwb_fp: Path, save_dir: Path, save_io
 ) -> Path:
-    """Combine two NWB files and save to scratch directory
+    """
+    Combine two NWB files by merging attributes from a
+    secondary file into a main file.
 
     Parameters
     ----------
     main_nwb_fp : Path
-        path to the main NWB file
+        Path to the main NWB file.
     sub_nwb_fp : Path
-        path to the sub NWB file
+        Path to the secondary NWB file whose data will be merged.
     save_dir : Path
-        path to the save location for the NWB file
+        Directory to save the combined NWB file.
     save_io : Union[NWBHDF5IO, NWBZarrIO]
-        how to save the nwb
+        IO class used to write the resulting NWB file.
+
     Returns
     -------
     Path
-        the path to the saved nwb
+        Path to the saved combined NWB file.
     """
     main_io = determine_io(main_nwb_fp)
     sub_io = determine_io(sub_nwb_fp)
