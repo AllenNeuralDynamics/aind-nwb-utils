@@ -10,7 +10,6 @@ from pynwb import NWBHDF5IO
 
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
 
-
 def get_nwb_attribute(
     main_io: Union[NWBHDF5IO, NWBZarrIO], sub_io: Union[NWBHDF5IO, NWBZarrIO]
 ) -> Union[NWBHDF5IO, NWBZarrIO]:
@@ -30,28 +29,39 @@ def get_nwb_attribute(
     """
     for field_name in sub_io.fields.keys():
         attribute = getattr(sub_io, field_name)
-        if (
-            isinstance(attribute, str)
-            or isinstance(attribute, datetime.datetime)
-            or isinstance(attribute, list)
-            or isinstance(attribute, pynwb.file.Subject)
-        ):
-            continue
-        for name, data in getattr(sub_io, field_name).items():
-            data.reset_parent()
-            if name not in getattr(main_io, field_name):
-                if field_name == "acquisition":
-                    main_io.add_acquisition(data)
-                elif field_name == "processing":
-                    main_io.add_processing_module(data)
-                elif field_name == "analysis":
-                    main_io.add_analysis(data)
-                elif field_name == "intervals":
-                    main_io.add_interval(data)
-                else:
-                    raise ValueError("Attribute not found")
-    return main_io
 
+        # Skip non-container attributes
+        if isinstance(attribute, (str, datetime.datetime, list, pynwb.file.Subject)):
+            continue
+
+        # If the attribute is TimeIntervals, handle it separately
+        if isinstance(attribute, pynwb.epoch.TimeIntervals):
+            attribute.reset_parent()
+            attribute.parent = main_io  # 🔹 Explicitly set the parent to avoid orphan errors
+            if field_name == "intervals":
+                main_io.add_time_intervals(attribute)
+            continue  # Skip further processing
+
+        # Handle dictionary-like attributes
+        if hasattr(attribute, "items"):
+            for name, data in attribute.items():
+                data.reset_parent()
+                data.parent = main_io  # 🔹 Explicitly set parent here as well
+                if name not in getattr(main_io, field_name, {}):
+                    if field_name == "acquisition":
+                        main_io.add_acquisition(data)
+                    elif field_name == "processing":
+                        main_io.add_processing_module(data)
+                    elif field_name == "analysis":
+                        main_io.add_analysis(data)
+                    elif field_name == "intervals":
+                        main_io.add_time_intervals(data)
+                    else:
+                        raise ValueError(f"Unknown attribute type: {field_name}")
+        else:
+            raise TypeError(f"Unexpected type for {field_name}: {type(attribute)}")
+
+    return main_io
 
 def combine_nwb_file(main_nwb_fp: Path, sub_nwb_fp: Path, save_dir: Path, save_io) -> Path:
     """Combine two NWB files and save to scratch directory
