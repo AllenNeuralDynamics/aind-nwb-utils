@@ -8,10 +8,14 @@ from pynwb import NWBHDF5IO
 from pynwb import NWBFile
 from pynwb.base import Images  # example NWB container
 
-from unittest.mock import create_autospec
+from unittest.mock import create_autospec, MagicMock
 
 from aind_nwb_utils.nwb_io import determine_io
-from aind_nwb_utils.utils import combine_nwb_file, is_non_mergeable, add_data
+from aind_nwb_utils.utils import (
+    combine_nwb_file,
+    is_non_mergeable,
+    add_data,
+)
 
 
 class TestUtils(unittest.TestCase):
@@ -31,6 +35,12 @@ class TestUtils(unittest.TestCase):
             is_non_mergeable(NWBFile("desc", "id", datetime.datetime.now()))
         )
 
+    def test_is_non_mergeable_various_types(self):
+        """Should return True for non-mergeable types"""
+        self.assertTrue(is_non_mergeable("string"))
+        self.assertTrue(is_non_mergeable(datetime.datetime.now()))
+        self.assertTrue(is_non_mergeable([]))
+
     def test_add_data_to_acquisition(self):
         """Test adding data to acquisition"""
         nwbfile = create_autospec(NWBFile)
@@ -42,6 +52,25 @@ class TestUtils(unittest.TestCase):
 
         add_data(nwbfile, "acquisition", obj.name, obj)
         nwbfile.add_acquisition.assert_called_once_with(obj)
+
+    def test_add_data_with_existing_name(self):
+        """Should return early if name already exists"""
+        nwbfile = MagicMock()
+        nwbfile.acquisition = {"existing": "dummy"}
+        obj = MagicMock()
+        obj.name = "existing"
+
+        # Should return without calling add_acquisition
+        add_data(nwbfile, "acquisition", obj.name, obj)
+        nwbfile.add_acquisition.assert_not_called()
+
+    def test_add_data_with_unknown_field_raises(self):
+        """Should raise ValueError for unknown field"""
+        nwbfile = MagicMock()
+        obj = MagicMock()
+        obj.name = "anything"
+        with self.assertRaises(ValueError):
+            add_data(nwbfile, "unknown", obj.name, obj)
 
     def test_get_nwb_attribute(self):
         """Test get_nwb_attribute function"""
