@@ -10,6 +10,7 @@ from pynwb import NWBHDF5IO
 
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
 
+
 def get_nwb_attribute(
     main_io: Union[NWBHDF5IO, NWBZarrIO], sub_io: Union[NWBHDF5IO, NWBZarrIO]
 ) -> Union[NWBHDF5IO, NWBZarrIO]:
@@ -37,7 +38,9 @@ def get_nwb_attribute(
         # If the attribute is TimeIntervals, handle it separately
         if isinstance(attribute, pynwb.epoch.TimeIntervals):
             attribute.reset_parent()
-            attribute.parent = main_io  # 🔹 Explicitly set the parent to avoid orphan errors
+            attribute.parent = (
+                main_io  # 🔹 Explicitly set the parent to avoid orphan errors
+            )
             if field_name == "intervals":
                 main_io.add_time_intervals(attribute)
             continue  # Skip further processing
@@ -63,7 +66,10 @@ def get_nwb_attribute(
 
     return main_io
 
-def combine_nwb_file(main_nwb_fp: Path, sub_nwb_fp: Path, save_dir: Path, save_io) -> Path:
+
+def combine_nwb_file(
+    main_nwb_fp: Path, sub_nwb_fp: Path, save_dir: Path, save_io
+) -> Path:
     """Combine two NWB files and save to scratch directory
 
     Parameters
@@ -72,6 +78,8 @@ def combine_nwb_file(main_nwb_fp: Path, sub_nwb_fp: Path, save_dir: Path, save_i
         path to the main NWB file
     sub_nwb_fp : Path
         path to the sub NWB file
+    save_dir : Path
+        path to the save location for the NWB file
     save_io : Union[NWBHDF5IO, NWBZarrIO]
         how to save the nwb
     Returns
