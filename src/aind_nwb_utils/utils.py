@@ -109,7 +109,7 @@ def get_nwb_attribute(
 
 
 def combine_nwb_file(
-    main_nwb_fp: Path, sub_nwb_fp: Path, save_dir: Path, save_io
+    main_nwb_fp: Path, sub_nwb_fp: Path, save_dir: Path, save_io: Union[NWBHDF5IO, NWBZarrIO]
 ) -> Path:
     """
     Combine two NWB files by merging attributes from a
