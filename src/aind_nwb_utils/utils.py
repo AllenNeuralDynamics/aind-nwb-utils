@@ -11,7 +11,7 @@ from pynwb import NWBHDF5IO
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
 
 
-def def is_non_mergeable(attr: Any):
+def is_non_mergeable(attr: Any):
     """
     Check if an attribute is not suitable for merging into the NWB file.
 
@@ -26,15 +26,20 @@ def def is_non_mergeable(attr: Any):
         True if the attribute is a non-container type or
         should be skipped during merging.
     """
-    return isinstance(attr, (
-        str,
-        datetime.datetime,
-        list,
-        pynwb.file.Subject,
-    ))
+    return isinstance(
+        attr,
+        (
+            str,
+            datetime.datetime,
+            list,
+            pynwb.file.Subject,
+        ),
+    )
 
 
-def add_data(main_io: Union[NWBHDF5IO, NWBZarrIO], field: str, name: str, obj: Any):
+def add_data(
+    main_io: Union[NWBHDF5IO, NWBZarrIO], field: str, name: str, obj: Any
+):
     """
     Add a data object to the appropriate field in the NWB file.
 
@@ -109,7 +114,10 @@ def get_nwb_attribute(
 
 
 def combine_nwb_file(
-    main_nwb_fp: Path, sub_nwb_fp: Path, save_dir: Path, save_io: Union[NWBHDF5IO, NWBZarrIO]
+    main_nwb_fp: Path,
+    sub_nwb_fp: Path,
+    save_dir: Path,
+    save_io: Union[NWBHDF5IO, NWBZarrIO],
 ) -> Path:
     """
     Combine two NWB files by merging attributes from a
