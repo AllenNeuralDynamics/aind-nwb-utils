@@ -2,7 +2,7 @@
 
 import datetime
 from pathlib import Path
-from typing import Union
+from typing import Union, Any
 
 import pynwb
 from hdmf_zarr import NWBZarrIO
@@ -11,7 +11,7 @@ from pynwb import NWBHDF5IO
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
 
 
-def is_non_mergeable(attr):
+def def is_non_mergeable(attr: Any):
     """
     Check if an attribute is not suitable for merging into the NWB file.
 
@@ -34,7 +34,7 @@ def is_non_mergeable(attr):
     ))
 
 
-def add_data(main_io: Union[NWBHDF5IO, NWBZarrIO], field: str, name: str, obj):
+def add_data(main_io: Union[NWBHDF5IO, NWBZarrIO], field: str, name: str, obj: Any):
     """
     Add a data object to the appropriate field in the NWB file.
 
