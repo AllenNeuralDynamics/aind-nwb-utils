@@ -15,13 +15,13 @@ class TestNWBIO(unittest.TestCase):
 
     def test_create_temp_nwb_with_nwbzarrio(self):
         """Test create_temp_nwb with NWBZarrIO"""
-        temp_path = create_temp_nwb(NWBZarrIO)
+        temp_path = create_temp_nwb(None, NWBZarrIO)
         self.assertTrue(temp_path.is_dir())
         self.assertTrue(temp_path.exists())
 
     def test_create_temp_nwb_with_nwbhdf5io(self):
         """Test create_temp_nwb with NWBHDF5IO"""
-        temp_path = create_temp_nwb(NWBHDF5IO)
+        temp_path = create_temp_nwb(None, NWBHDF5IO)
         self.assertTrue(temp_path.is_file())
         self.assertTrue(temp_path.exists())
 

@@ -2,7 +2,7 @@
 
 import datetime
 from pathlib import Path
-from typing import Union
+from typing import Union, Any
 
 import pynwb
 from hdmf_zarr import NWBZarrIO
@@ -11,67 +11,137 @@ from pynwb import NWBHDF5IO
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
 
 
-def get_nwb_attribute(
-    main_io: Union[NWBHDF5IO, NWBZarrIO], sub_io: Union[NWBHDF5IO, NWBZarrIO]
-) -> Union[NWBHDF5IO, NWBZarrIO]:
-    """Get an attribute from the NWB file
+def is_non_mergeable(attr: Any):
+    """
+    Check if an attribute is not suitable for merging into the NWB file.
+
+    Parameters
+    ----------
+    attr : Any
+        The attribute to check.
+
+    Returns
+    -------
+    bool
+        True if the attribute is a non-container type or
+        should be skipped during merging.
+    """
+    return isinstance(
+        attr,
+        (
+            str,
+            datetime.datetime,
+            list,
+            pynwb.file.Subject,
+        ),
+    )
+
+
+def add_data(
+    main_io: Union[NWBHDF5IO, NWBZarrIO], field: str, name: str, obj: Any
+):
+    """
+    Add a data object to the appropriate field in the NWB file.
 
     Parameters
     ----------
     main_io : Union[NWBHDF5IO, NWBZarrIO]
-        the io object
+        The main NWB file IO object to add data to.
+    field : str
+        The field of the NWB file to add to
+        (e.g., 'acquisition', 'processing').
+    name : str
+        The name of the object to be added.
+    obj : Any
+        The NWB container object to add.
+    """
+    obj.reset_parent()
+    obj.parent = main_io
+    existing = getattr(main_io, field, {})
+    if name in existing:
+        return
+    if field == "acquisition":
+        main_io.add_acquisition(obj)
+    elif field == "processing":
+        main_io.add_processing_module(obj)
+    elif field == "analysis":
+        main_io.add_analysis(obj)
+    elif field == "intervals":
+        main_io.add_time_intervals(obj)
+    else:
+        raise ValueError(f"Unknown attribute type: {field}")
+
+
+def get_nwb_attribute(
+    main_io: Union[NWBHDF5IO, NWBZarrIO], sub_io: Union[NWBHDF5IO, NWBZarrIO]
+) -> Union[NWBHDF5IO, NWBZarrIO]:
+    """
+    Merge container-type attributes from one NWB file
+        (sub_io) into another (main_io).
+
+    Parameters
+    ----------
+    main_io : Union[NWBHDF5IO, NWBZarrIO]
+        The destination NWB file IO object.
     sub_io : Union[NWBHDF5IO, NWBZarrIO]
-        the sub io object
+        The source NWB file IO object to merge from.
 
     Returns
     -------
-    Any
-        the attribute
+    Union[NWBHDF5IO, NWBZarrIO]
+        The modified main_io with attributes from sub_io merged in.
     """
     for field_name in sub_io.fields.keys():
-        attribute = getattr(sub_io, field_name)
-        if (
-            isinstance(attribute, str)
-            or isinstance(attribute, datetime.datetime)
-            or isinstance(attribute, list)
-            or isinstance(attribute, pynwb.file.Subject)
-        ):
+        attr = getattr(sub_io, field_name)
+
+        if is_non_mergeable(attr):
             continue
-        for name, data in getattr(sub_io, field_name).items():
-            data.reset_parent()
-            if name not in getattr(main_io, field_name):
-                if field_name == "acquisition":
-                    main_io.add_acquisition(data)
-                elif field_name == "processing":
-                    main_io.add_processing_module(data)
-                elif field_name == "analysis":
-                    main_io.add_analysis(data)
-                elif field_name == "intervals":
-                    main_io.add_interval(data)
-                else:
-                    raise ValueError("Attribute not found")
+
+        if isinstance(attr, pynwb.epoch.TimeIntervals):
+            attr.reset_parent()
+            attr.parent = main_io
+            if field_name == "intervals":
+                main_io.add_time_intervals(attr)
+            continue
+
+        if hasattr(attr, "items"):
+            for name, data in attr.items():
+                add_data(main_io, field_name, name, data)
+        else:
+            raise TypeError(f"Unexpected type for {field_name}: {type(attr)}")
+
     return main_io
 
 
-def combine_nwb_file(main_nwb_fp: Path, sub_nwb_fp: Path, save_io) -> Path:
-    """Combine two NWB files and save to scratch directory
+def combine_nwb_file(
+    main_nwb_fp: Path,
+    sub_nwb_fp: Path,
+    save_dir: Path,
+    save_io: Union[NWBHDF5IO, NWBZarrIO],
+) -> Path:
+    """
+    Combine two NWB files by merging attributes from a
+    secondary file into a main file.
 
     Parameters
     ----------
     main_nwb_fp : Path
-        path to the main NWB file
+        Path to the main NWB file.
     sub_nwb_fp : Path
-        path to the sub NWB file
+        Path to the secondary NWB file whose data will be merged.
+    save_dir : Path
+        Directory to save the combined NWB file.
     save_io : Union[NWBHDF5IO, NWBZarrIO]
-        how to save the nwb
+        IO class used to write the resulting NWB file.
+
     Returns
     -------
     Path
-        the path to the saved nwb
+        Path to the saved combined NWB file.
     """
     main_io = determine_io(main_nwb_fp)
     sub_io = determine_io(sub_nwb_fp)
-    scratch_fp = create_temp_nwb(save_io)
+    scratch_fp = create_temp_nwb(save_dir, save_io)
     with main_io(main_nwb_fp, "r") as main_io:
         main_nwb = main_io.read()
         with sub_io(sub_nwb_fp, "r") as read_io:

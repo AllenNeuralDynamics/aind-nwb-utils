@@ -11,7 +11,7 @@ from pynwb import NWBHDF5IO
 
 
 def create_temp_nwb(
-    save_strategy=Union[NWBHDF5IO, NWBZarrIO], dir=None
+    save_dir=str, save_strategy=Union[NWBHDF5IO, NWBZarrIO]
 ) -> Path:
     """Create a temporary file and return the path
 
@@ -19,7 +19,7 @@ def create_temp_nwb(
     ----------
     save_strategy : Union[NWBHDF5IO, NWBZarrIO]
         to determine if a temp file or directory should be created
-    dir : str
+    save_dir : str
         option to specify root directory
     Returns
     -------
@@ -27,7 +27,7 @@ def create_temp_nwb(
         the path to the temporary file
     """
     if save_strategy is NWBZarrIO:
-        temp_path = tempfile.mkdtemp(dir=dir)
+        temp_path = tempfile.mkdtemp(dir=save_dir)
     else:
         temp = tempfile.NamedTemporaryFile(delete=False, suffix=".nwb")
         temp_path = temp.name
