@@ -104,7 +104,12 @@ def get_nwb_attribute(
             else:
                 print("CONFLICTING tables between main and subject")
 
-            
+        if field_name == "units" and isinstance(attr, pynwb.misc.Units):
+            if len(main_io.units) == 0:
+                attr.reset_parent()
+                attr.parent = main_io
+                main_io.fields['units'] = attr  # direct override
+            continue    
 
         if hasattr(attr, "items"):
             for name, data in attr.items():
