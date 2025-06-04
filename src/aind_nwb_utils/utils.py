@@ -73,24 +73,9 @@ def add_data(
 
 
 def get_nwb_attribute(
-    main_io: Union[NWBHDF5IO, NWBZarrIO], sub_io: Union[NWBHDF5IO, NWBZarrIO]
+    main_io: Union[NWBHDF5IO, NWBZarrIO],
+    sub_io: Union[NWBHDF5IO, NWBZarrIO]
 ) -> Union[NWBHDF5IO, NWBZarrIO]:
-    """
-    Merge container-type attributes from one NWB file
-        (sub_io) into another (main_io).
-
-    Parameters
-    ----------
-    main_io : Union[NWBHDF5IO, NWBZarrIO]
-        The destination NWB file IO object.
-    sub_io : Union[NWBHDF5IO, NWBZarrIO]
-        The source NWB file IO object to merge from.
-
-    Returns
-    -------
-    Union[NWBHDF5IO, NWBZarrIO]
-        The modified main_io with attributes from sub_io merged in.
-    """
     for field_name in sub_io.fields.keys():
         attr = getattr(sub_io, field_name)
 
@@ -102,6 +87,19 @@ def get_nwb_attribute(
             attr.parent = main_io
             if field_name == "intervals":
                 main_io.add_time_intervals(attr)
+            continue
+
+        if isinstance(attr, DynamicTable):
+            main_table = getattr(main_io, field_name, None)
+
+            if main_table is None:
+                # If the main table doesn't exist, set it directly
+                setattr(main_io, field_name, attr)
+            else:
+                # Append rows from sub to main
+                for i in range(len(attr)):
+                    row = {col: attr[col][i] for col in attr.colnames}
+                    main_table.add_row(**row)
             continue
 
         if hasattr(attr, "items"):
