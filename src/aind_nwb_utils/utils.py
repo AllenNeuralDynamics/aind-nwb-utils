@@ -102,7 +102,7 @@ def get_nwb_attribute(
                 # If the main table doesn't exist, set it directly
                 setattr(main_io, field_name, attr)
             else:
-                logging.info("CONFLICTING tables between main and subject")
+                print("CONFLICTING tables between main and subject")
 
             
 
