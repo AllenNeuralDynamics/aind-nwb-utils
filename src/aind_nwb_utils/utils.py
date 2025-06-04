@@ -90,17 +90,8 @@ def get_nwb_attribute(
                 main_io.add_time_intervals(attr)
             continue
 
-        if isinstance(attr, DynamicTable):
-            main_table = getattr(main_io, field_name, None)
-
-            if main_table is None:
-                # If the main table doesn't exist, set it directly
-                setattr(main_io, field_name, attr)
-            else:
-                # Append rows from sub to main
-                for i in range(len(attr)):
-                    row = {col: attr[col][i] for col in attr.colnames}
-                    main_table.add_row(**row)
+        if field_name == "electrodes" and isinstance(attr, DynamicTable):
+            setattr(main_io, "electrodes", attr)  # replace directly
             continue
 
         if hasattr(attr, "items"):
