@@ -12,24 +12,6 @@ from hdmf.common import DynamicTable
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
 
 
-def replace_electrodes_table(main_io, new_table):
-    # Get the existing table
-    electrodes_table = main_io.electrodes
-
-    # Clear existing data (brute force)
-    for col in list(electrodes_table.columns):
-        electrodes_table.remove_column(col.name)
-
-    # Add columns from the new table
-    for col in new_table.columns:
-        electrodes_table.add_column(name=col.name, description=col.description)
-        electrodes_table[col.name][:] = new_table[col.name][:]
-
-    # Add rows one by one
-    for i in range(len(new_table)):
-        row = {col: new_table[col][i] for col in new_table.colnames}
-        electrodes_table.add_row(**row)
-        
 
 def is_non_mergeable(attr: Any):
     """
@@ -108,10 +90,21 @@ def get_nwb_attribute(
             if field_name == "intervals":
                 main_io.add_time_intervals(attr)
             continue
+            
         if field_name == "electrodes" and isinstance(attr, DynamicTable):
-            attr.reset_parent()
-            attr.parent = main_io
-            main_io.fields['electrodes'] = attr  
+            # Do nothing — we intentionally keep main_io.electrodes only
+            continue
+
+        if field_name != "electrodes" and isinstance(attr, DynamicTable):
+            main_table = getattr(main_io, field_name, None)
+
+            if main_table is None:
+                # If the main table doesn't exist, set it directly
+                setattr(main_io, field_name, attr)
+            else:
+                logging.info("CONFLICTING tables between main and subject")
+
+            
 
         if hasattr(attr, "items"):
             for name, data in attr.items():
