@@ -108,9 +108,10 @@ def get_nwb_attribute(
             if field_name == "intervals":
                 main_io.add_time_intervals(attr)
             continue
-
         if field_name == "electrodes" and isinstance(attr, DynamicTable):
-            replace_electrodes_table(main_io, attr)
+            attr.reset_parent()
+            attr.parent = main_io
+            main_io.fields['electrodes'] = attr  
 
         if hasattr(attr, "items"):
             for name, data in attr.items():
