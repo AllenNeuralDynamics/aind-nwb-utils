@@ -12,6 +12,25 @@ from hdmf.common import DynamicTable
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
 
 
+def replace_electrodes_table(main_io, new_table):
+    # Get the existing table
+    electrodes_table = main_io.electrodes
+
+    # Clear existing data (brute force)
+    for col in list(electrodes_table.columns):
+        electrodes_table.remove_column(col.name)
+
+    # Add columns from the new table
+    for col in new_table.columns:
+        electrodes_table.add_column(name=col.name, description=col.description)
+        electrodes_table[col.name][:] = new_table[col.name][:]
+
+    # Add rows one by one
+    for i in range(len(new_table)):
+        row = {col: new_table[col][i] for col in new_table.colnames}
+        electrodes_table.add_row(**row)
+        
+
 def is_non_mergeable(attr: Any):
     """
     Check if an attribute is not suitable for merging into the NWB file.
@@ -91,8 +110,7 @@ def get_nwb_attribute(
             continue
 
         if field_name == "electrodes" and isinstance(attr, DynamicTable):
-            setattr(main_io, "electrodes", attr)  # replace directly
-            continue
+            replace_electrodes_table(main_io, attr)
 
         if hasattr(attr, "items"):
             for name, data in attr.items():
