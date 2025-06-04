@@ -7,6 +7,7 @@ from typing import Union, Any
 import pynwb
 from hdmf_zarr import NWBZarrIO
 from pynwb import NWBHDF5IO
+from hdmf.common import DynamicTable
 
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
 
