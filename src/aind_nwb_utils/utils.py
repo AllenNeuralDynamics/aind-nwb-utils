@@ -92,8 +92,12 @@ def get_nwb_attribute(
             continue
             
         if field_name == "electrodes" and isinstance(attr, DynamicTable):
-            # Do nothing — we intentionally keep main_io.electrodes only
-            continue
+            print("Replacing electrodes table with sub NWB's electrodes")
+            attr.reset_parent()
+            attr.parent = main_io
+        
+            # overwrite the entire electrodes table
+            main_nwb.electrodes = attr
 
         if field_name != "electrodes" and isinstance(attr, DynamicTable):
             main_table = getattr(main_io, field_name, None)
