@@ -171,16 +171,16 @@ def get_subject_nwb_object(data_path: Path) -> Subject:
         species, sex, date of birth, and other experimental details.
     """
 
-    data_descrption_path = data_path / "data_description.json"
+    data_description_path = data_path / "data_description.json"
     subject_json_path = data_path / "subject.json"
 
-    if not data_descrption_path.exists():
-        raise FileNotFoundError("No data description json found")
+    if not data_description_path.exists():
+        raise FileNotFoundError(f"No data description json found at {data_description_path}")
 
     if not subject_json_path.exists():
         raise FileNotFoundError("No subject json found")
     
-    with open(data_descrption_path, "r") as f:
+    with open(data_description_path, "r") as f:
         data_description = json.load(f)
     
     with open(subject_json_path, "r") as f:
@@ -188,6 +188,7 @@ def get_subject_nwb_object(data_path: Path) -> Subject:
     
     session_start_date_string = data_description["creation_time"]
 
+    # ported this from subject nwb capsule
     date_format_no_tz = "%Y-%m-%dT%H:%M:%S"
     date_format_tz = "%Y-%m-%dT%H:%M:%S%z"
     date_format_frac_tz = "%Y-%m-%dT%H:%M:%S.%f%z"
@@ -197,7 +198,7 @@ def get_subject_nwb_object(data_path: Path) -> Subject:
         date_format_frac_tz,
     ]
 
-    # Use strptime to parse the string into a datetime object
+    # Use strptime to parse the string into a datetime object - not sure if this needs to go through all supported formats?
     session_start_date_time = None
     for date_format in supported_date_formats:
         try:
@@ -215,6 +216,7 @@ def get_subject_nwb_object(data_path: Path) -> Subject:
     if session_start_date_time.tzinfo is None:
         pacific = pytz.timezone('US/Pacific')
         session_start_date_time = pacific.localize(session_start_date_time)
+
     subject_age = session_start_date_time - subject_dob
 
     age = "P" + str(subject_age.days) + "D"
