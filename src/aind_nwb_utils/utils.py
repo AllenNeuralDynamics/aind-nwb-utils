@@ -4,15 +4,40 @@ import datetime
 from pathlib import Path
 from typing import Union, Any
 
-import pynwb
 import numpy as np
+import pynwb
+from pynwb import TimeSeries
+from pynwb.base import VectorData
 from hdmf_zarr import NWBZarrIO
 from pynwb import NWBHDF5IO
-from pynwb.base import TimeSeries
-from hdmf.common.table import VectorData
-from hdmf.common import DynamicTable
 
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
+
+
+def is_non_mergeable(attr: Any):
+    """
+    Check if an attribute is not suitable for merging into the NWB file.
+
+    Parameters
+    ----------
+    attr : Any
+        The attribute to check.
+
+    Returns
+    -------
+    bool
+        True if the attribute is a non-container type or
+        should be skipped during merging.
+    """
+    return isinstance(
+        attr,
+        (
+            str,
+            datetime.datetime,
+            list,
+            pynwb.file.Subject,
+        ),
+    )
 
 
 def cast_timeseries_if_needed(ts_obj):
@@ -47,7 +72,7 @@ def cast_timeseries_if_needed(ts_obj):
     return ts_obj
 
 
-def cast_vector_data_if_needed(obj):
+def cast_vectordata_if_needed(obj):
     """
     Cast the data inside VectorData objects if necessary.
     """
@@ -60,63 +85,6 @@ def cast_vector_data_if_needed(obj):
             except Exception as e:
                 print(f"Could not cast VectorData '{obj.name}' — {e}")
     return obj
-
-
-def get_nwb_attribute(
-    main_io: Union[NWBHDF5IO, NWBZarrIO], sub_io: Union[NWBHDF5IO, NWBZarrIO]
-) -> Union[NWBHDF5IO, NWBZarrIO]:
-    """
-    Merge container-type attributes from one NWB file (sub_io)
-    into another (main_io), with dtype-safe handling.
-    """
-    for field_name in sub_io.fields.keys():
-        attr = getattr(sub_io, field_name)
-
-        if is_non_mergeable(attr):
-            continue
-
-        if isinstance(attr, pynwb.epoch.TimeIntervals):
-            attr.reset_parent()
-            attr.parent = main_io
-            if field_name == "intervals":
-                main_io.add_time_intervals(attr)
-            continue
-
-        if hasattr(attr, "items"):
-            for name, data in attr.items():
-                data = cast_timeseries_if_needed(data)
-                data = cast_vector_data_if_needed(data)
-                add_data(main_io, field_name, name, data)
-        else:
-            raise TypeError(f"Unexpected type for {field_name}: {type(attr)}")
-
-    return main_io
-
-
-def is_non_mergeable(attr: Any):
-    """
-    Check if an attribute is not suitable for merging into the NWB file.
-
-    Parameters
-    ----------
-    attr : Any
-        The attribute to check.
-
-    Returns
-    -------
-    bool
-        True if the attribute is a non-container type or
-        should be skipped during merging.
-    """
-    return isinstance(
-        attr,
-        (
-            str,
-            datetime.datetime,
-            list,
-            pynwb.file.Subject,
-        ),
-    )
 
 
 def add_data(
@@ -153,6 +121,50 @@ def add_data(
     else:
         raise ValueError(f"Unknown attribute type: {field}")
 
+
+def get_nwb_attribute(
+    main_io: Union[NWBHDF5IO, NWBZarrIO], sub_io: Union[NWBHDF5IO, NWBZarrIO]
+) -> Union[NWBHDF5IO, NWBZarrIO]:
+    """
+    Merge container-type attributes from one NWB file
+        (sub_io) into another (main_io).
+
+    Parameters
+    ----------
+    main_io : Union[NWBHDF5IO, NWBZarrIO]
+        The destination NWB file IO object.
+    sub_io : Union[NWBHDF5IO, NWBZarrIO]
+        The source NWB file IO object to merge from.
+
+    Returns
+    -------
+    Union[NWBHDF5IO, NWBZarrIO]
+        The modified main_io with attributes from sub_io merged in.
+    """
+    for field_name in sub_io.fields.keys():
+        attr = getattr(sub_io, field_name)
+
+        if is_non_mergeable(attr):
+            continue
+
+        if isinstance(attr, pynwb.epoch.TimeIntervals):
+            attr.reset_parent()
+            attr.parent = main_io
+            if field_name == "intervals":
+                main_io.add_time_intervals(attr)
+            continue
+
+        if hasattr(attr, "items"):
+            for name, data in attr.items():
+                data = cast_timeseries_if_needed(data)
+                data = cast_vectordata_if_needed(data)
+                add_data(main_io, field_name, name, data)
+        else:
+            raise TypeError(f"Unexpected type for {field_name}: {type(attr)}")
+
+    return main_io
+
+
 def combine_nwb_file(
     main_nwb_fp: Path,
     sub_nwb_fp: Path,
@@ -179,30 +191,14 @@ def combine_nwb_file(
     Path
         Path to the saved combined NWB file.
     """
-    main_io_cls = determine_io(main_nwb_fp)
-    sub_io_cls = determine_io(sub_nwb_fp)
+    main_io = determine_io(main_nwb_fp)
+    sub_io = determine_io(sub_nwb_fp)
     scratch_fp = create_temp_nwb(save_dir, save_io)
-
-    # Open main and sub NWB IOs for reading
-    with main_io_cls(main_nwb_fp, "r") as main_io, sub_io_cls(sub_nwb_fp, "r") as sub_io:
+    with main_io(main_nwb_fp, "r") as main_io:
         main_nwb = main_io.read()
-        sub_nwb = sub_io.read()
-
-    # Merge sub_nwb into main_nwb
-    merged_nwb = get_nwb_attribute(main_nwb, sub_nwb)
-
-
-    # Reset container_source to allow writing
-    merged_nwb.container_source = None
-
-    # Now write the merged NWB to a temporary file using the *save_io* in "w" mode
-    with save_io(scratch_fp, "w") as out_io:
-        # Write the merged NWBFile directly to disk
-        out_io.write(merged_nwb)
-
-    # Finally, export from the saved merged NWB file for your desired export format
-    # This means opening the merged file with the *save_io* class and exporting it again
-    with save_io(scratch_fp, "r") as final_io, save_io(scratch_fp, "w") as export_io:
-        export_io.export(src_io=final_io, write_args=dict(link_data=False))
-
+        with sub_io(sub_nwb_fp, "r") as read_io:
+            sub_nwb = read_io.read()
+            main_nwb = get_nwb_attribute(main_nwb, sub_nwb)
+            with save_io(scratch_fp, "w") as io:
+                io.export(src_io=main_io, write_args=dict(link_data=False))
     return scratch_fp
