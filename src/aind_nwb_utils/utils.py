@@ -8,6 +8,8 @@ import pynwb
 import numpy as np
 from hdmf_zarr import NWBZarrIO
 from pynwb import NWBHDF5IO
+from pynwb.base import TimeSeries
+from hdmf.common.table import VectorData
 from hdmf.common import DynamicTable
 
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
