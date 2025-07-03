@@ -177,11 +177,26 @@ def combine_nwb_file(
     Path
         Path to the saved combined NWB file.
     """
-    main_io = determine_io(main_nwb_fp)
-    sub_io = determine_io(sub_nwb_fp)
+    main_io_cls = determine_io(main_nwb_fp)
+    sub_io_cls = determine_io(sub_nwb_fp)
     scratch_fp = create_temp_nwb(save_dir, save_io)
-    with main_io(main_nwb_fp, "r") as main_io:
+
+    # Open main and sub NWB IOs for reading
+    with main_io_cls(main_nwb_fp, "r") as main_io, sub_io_cls(sub_nwb_fp, "r") as sub_io:
         main_nwb = main_io.read()
-        with save_io(scratch_fp, "w") as io:
-            io.export(src_io=main_io, write_args=dict(link_data=False))
+        sub_nwb = sub_io.read()
+
+    # Merge sub_nwb into main_nwb
+    merged_nwb = get_nwb_attribute(main_nwb, sub_nwb)
+
+    # Now write the merged NWB to a temporary file using the *save_io* in "w" mode
+    with save_io(scratch_fp, "w") as out_io:
+        # Write the merged NWBFile directly to disk
+        out_io.write(merged_nwb)
+
+    # Finally, export from the saved merged NWB file for your desired export format
+    # This means opening the merged file with the *save_io* class and exporting it again
+    with save_io(scratch_fp, "r") as final_io, save_io(scratch_fp, "w") as export_io:
+        export_io.export(src_io=final_io, write_args=dict(link_data=False))
+
     return scratch_fp
