@@ -14,6 +14,89 @@ from pynwb import NWBHDF5IO
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
 
 
+# Global flag to control aggressive dtype casting
+ENABLE_DTYPE_CASTING = False
+
+
+def set_dtype_casting(enabled: bool):
+    """
+    Enable or disable aggressive dtype casting.
+
+    Parameters
+    ----------
+    enabled : bool
+        Whether to enable dtype casting from 64-bit to 32-bit types.
+    """
+    global ENABLE_DTYPE_CASTING
+    ENABLE_DTYPE_CASTING = enabled
+
+
+def is_safe_to_cast(data_array, target_dtype):
+    """
+    Check if it's safe to cast data to target dtype without losing information.
+
+    Parameters
+    ----------
+    data_array : np.ndarray
+        The data to check
+    target_dtype : np.dtype
+        The target dtype to cast to
+
+    Returns
+    -------
+    bool
+        True if casting is safe, False otherwise
+    """
+    try:
+        if target_dtype == np.float32:
+            # Check if all values are finite and within float32 range
+            return (
+                np.all(np.isfinite(data_array))
+                and np.all(np.abs(data_array) <= np.finfo(np.float32).max)
+            )
+        elif target_dtype == np.int32:
+            # Check if all values are within int32 range
+            return (
+                np.all(data_array >= np.iinfo(np.int32).min)
+                and np.all(data_array <= np.iinfo(np.int32).max)
+            )
+        return False
+    except (ValueError, OverflowError, MemoryError):
+        return False
+
+
+def handle_zarr_dtype_compatibility(data_array, target_dtype):
+    """
+    Handle Zarr-specific dtype compatibility issues.
+
+    Parameters
+    ----------
+    data_array : np.ndarray
+        The data array to check
+    target_dtype : np.dtype
+        The target dtype
+
+    Returns
+    -------
+    bool
+        True if the conversion is safe for Zarr, False otherwise
+    """
+    try:
+        # Check if the byte size is compatible
+        source_itemsize = data_array.dtype.itemsize
+        target_itemsize = np.dtype(target_dtype).itemsize
+
+        # Zarr requires that when changing to smaller dtype,
+        # the size must be a divisor of the original size
+        if target_itemsize < source_itemsize and source_itemsize % target_itemsize != 0:
+            return False
+
+        # Additional safety check for data range
+        return is_safe_to_cast(data_array, target_dtype)
+    except Exception:
+        return False
+
+
 def is_non_mergeable(attr: Any):
     """
     Check if an attribute is not suitable for merging into the NWB file.
@@ -40,59 +123,20 @@ def is_non_mergeable(attr: Any):
     )
 
 
-def safe_dtype_cast(data, target_dtype):
-    """
-    Safely cast data to target dtype, handling various array layouts.
-    
-    Parameters
-    ----------
-    data : array-like
-        The data to cast
-    target_dtype : numpy.dtype
-        The target data type
-        
-    Returns
-    -------
-    numpy.ndarray
-        The safely cast data
-    """
-    try:
-        # Convert to numpy array first if not already
-        if not isinstance(data, np.ndarray):
-            data = np.asarray(data)
-        
-        # Create a copy with the new dtype to avoid memory layout issues
-        return np.array(data, dtype=target_dtype, copy=True)
-    except (ValueError, TypeError) as e:
-        print(f"Could not cast data to {target_dtype}: {e}")
-        return data
-
-
 def cast_timeseries_if_needed(ts_obj):
-    """
-    Cast TimeSeries data to smaller precision if possible.
-    
-    Parameters
-    ----------
-    ts_obj : TimeSeries or other
-        The object to potentially cast
-        
-    Returns
-    -------
-    TimeSeries or original object
-        The cast TimeSeries or original object if casting not needed/possible
-    """
-    if not isinstance(ts_obj, TimeSeries):
+    if not isinstance(ts_obj, TimeSeries) or not ENABLE_DTYPE_CASTING:
         return ts_obj
 
     data = ts_obj.data
     if hasattr(data, "dtype") and data.dtype in [np.float64, np.int64]:
         try:
-            new_dtype = np.float32 if data.dtype == np.float64 else np.int32
-            casted_data = safe_dtype_cast(data, new_dtype)
+            # Check if data size is compatible with smaller dtype
+            data_array = np.asarray(data)
+            target_dtype = np.float32 if data.dtype == np.float64 else np.int32
             
-            # Only create new TimeSeries if casting was successful
-            if casted_data.dtype == new_dtype:
+            # Use Zarr-compatible check
+            if handle_zarr_dtype_compatibility(data_array, target_dtype):
+                casted_data = data_array.astype(target_dtype)
                 return TimeSeries(
                     name=ts_obj.name,
                     data=casted_data,
@@ -101,38 +145,28 @@ def cast_timeseries_if_needed(ts_obj):
                     description=ts_obj.description,
                 )
         except Exception as e:
-            print(f"Could not cast TimeSeries '{ts_obj.name}': {e}")
-    
+            print(f"Could not cast TimeSeries '{ts_obj.name}' — {e}")
     return ts_obj
 
 
 def cast_vectordata_if_needed(obj):
     """
     Cast the data inside VectorData objects if necessary.
-    
-    Parameters
-    ----------
-    obj : VectorData or other
-        The object to potentially cast
-        
-    Returns
-    -------
-    VectorData or original object
-        The object with potentially cast data
     """
-    if isinstance(obj, VectorData) and hasattr(obj, "data"):
-        dtype = getattr(obj.data, "dtype", None)
-        if dtype in [np.float64, np.int64]:
-            try:
-                new_dtype = np.float32 if dtype == np.float64 else np.int32
-                casted_data = safe_dtype_cast(obj.data, new_dtype)
-                
-                # Only update if casting was successful
-                if casted_data.dtype == new_dtype:
-                    obj.data = casted_data
-            except Exception as e:
-                print(f"Could not cast VectorData '{obj.name}': {e}")
-    
+    if not ENABLE_DTYPE_CASTING or not isinstance(obj, VectorData) or not hasattr(obj, "data"):
+        return obj
+        
+    dtype = getattr(obj.data, "dtype", None)
+    if dtype in [np.float64, np.int64]:
+        try:
+            data_array = np.asarray(obj.data)
+            target_dtype = np.float32 if dtype == np.float64 else np.int32
+            
+            # Use Zarr-compatible check
+            if handle_zarr_dtype_compatibility(data_array, target_dtype):
+                obj.data = data_array.astype(target_dtype)
+        except Exception as e:
+            print(f"Could not cast VectorData '{obj.name}' — {e}")
     return obj
 
 
@@ -239,17 +273,33 @@ def combine_nwb_file(
     -------
     Path
         Path to the saved combined NWB file.
+        
+    Notes
+    -----
+    If you encounter dtype casting errors with Zarr files, you can disable
+    automatic dtype casting by calling:
+    
+        from aind_nwb_utils import set_dtype_casting
+        set_dtype_casting(False)
+        
+    before calling this function.
     """
     main_io = determine_io(main_nwb_fp)
     sub_io = determine_io(sub_nwb_fp)
     scratch_fp = create_temp_nwb(save_dir, save_io)
     
-    with main_io(main_nwb_fp, "r") as main_file_io:
-        main_nwb = main_file_io.read()
-        with sub_io(sub_nwb_fp, "r") as read_io:
-            sub_nwb = read_io.read()
-            main_nwb = get_nwb_attribute(main_nwb, sub_nwb)
-            with save_io(scratch_fp, "w") as write_io:
-                write_io.export(src_io=main_file_io, write_args=dict(link_data=False))
+    try:
+        with main_io(main_nwb_fp, "r") as main_io:
+            main_nwb = main_io.read()
+            with sub_io(sub_nwb_fp, "r") as read_io:
+                sub_nwb = read_io.read()
+                main_nwb = get_nwb_attribute(main_nwb, sub_nwb)
+                with save_io(scratch_fp, "w") as io:
+                    io.export(src_io=main_io, write_args=dict(link_data=False))
+    except ValueError as e:
+        if "divisor" in str(e) and "dtype" in str(e):
+            print("Error: Dtype casting issue detected. "
+                  "Consider disabling dtype casting with set_dtype_casting(False)")
+        raise
     
     return scratch_fp
