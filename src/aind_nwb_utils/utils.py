@@ -197,7 +197,7 @@ def combine_nwb_file(
             return merged_nwb
     try:
         with save_io(scratch_fp, "w") as out_io:
-            out_io.export(src_io=InMemoryIO(), write_args=dict(link_data=False))
+            out_io.export(src_io=main_io, write_args=dict(link_data=False))
     except Exception as e:
         print(f"Failed to write combined NWB: {e}")
         if scratch_fp.exists():
