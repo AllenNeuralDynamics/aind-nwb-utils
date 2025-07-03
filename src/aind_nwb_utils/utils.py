@@ -1,6 +1,7 @@
 """Utility functions for working with NWB files."""
 
 import datetime
+import shutil
 from pathlib import Path
 from typing import Union, Any
 
