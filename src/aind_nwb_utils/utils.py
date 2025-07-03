@@ -191,6 +191,10 @@ def combine_nwb_file(
     # Merge sub_nwb into main_nwb
     merged_nwb = get_nwb_attribute(main_nwb, sub_nwb)
 
+
+    # Reset container_source to allow writing
+    merged_nwb.container_source = None
+
     # Now write the merged NWB to a temporary file using the *save_io* in "w" mode
     with save_io(scratch_fp, "w") as out_io:
         # Write the merged NWBFile directly to disk
