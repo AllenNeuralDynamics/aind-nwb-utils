@@ -182,9 +182,11 @@ def combine_nwb_file(
     scratch_fp = create_temp_nwb(save_dir, save_io)
     with main_io(main_nwb_fp, "r") as main_io:
         main_nwb = main_io.read()
-        with sub_io(sub_nwb_fp, "r") as read_io:
-            sub_nwb = read_io.read()
-            main_nwb = get_nwb_attribute(main_nwb, sub_nwb)
+        try:
             with save_io(scratch_fp, "w") as io:
                 io.export(src_io=main_io, write_args=dict(link_data=False))
+        except Exception as e:
+            print(f"Failed to export: {e}")
+            if scratch_fp.is_dir():
+                shutil.rmtree(scratch_fp)
     return scratch_fp
