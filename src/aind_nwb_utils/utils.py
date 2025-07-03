@@ -117,9 +117,17 @@ def get_nwb_attribute(
 
         if hasattr(attr, "items"):
             for name, data in attr.items():
+                # Optional safety check for VectorData with dtype
+                if hasattr(data, 'data') and hasattr(data.data, 'dtype'):
+                    # Normalize dtype to float32, int32, etc. if needed
+                    dtype = data.data.dtype
+                    if dtype == np.dtype('int64') or dtype == np.dtype('float64'):
+                        try:
+                            data.data = data.data.astype('float32' if dtype.kind == 'f' else 'int32')
+                        except Exception as e:
+                            print(f"Could not cast {field_name}.{name} from {dtype} — {e}")
+                
                 add_data(main_io, field_name, name, data)
-        else:
-            raise TypeError(f"Unexpected type for {field_name}: {type(attr)}")
 
     return main_io
 
