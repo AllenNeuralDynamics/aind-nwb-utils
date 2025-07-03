@@ -154,23 +154,41 @@ def get_nwb_attribute(
     return main_io
 
 
-def combine_nwb_file(main_nwb_fp, sub_nwb_fp, save_dir, save_io):
+
+def combine_nwb_file(
+    main_nwb_fp: Path,
+    sub_nwb_fp: Path,
+    save_dir: Path,
+    save_io: Union[NWBHDF5IO, NWBZarrIO],
+) -> Path:
+    """
+    Combine two NWB files by merging attributes from a
+    secondary file into a main file.
+
+    Parameters
+    ----------
+    main_nwb_fp : Path
+        Path to the main NWB file.
+    sub_nwb_fp : Path
+        Path to the secondary NWB file whose data will be merged.
+    save_dir : Path
+        Directory to save the combined NWB file.
+    save_io : Union[NWBHDF5IO, NWBZarrIO]
+        IO class used to write the resulting NWB file.
+
+    Returns
+    -------
+    Path
+        Path to the saved combined NWB file.
+    """
     main_io = determine_io(main_nwb_fp)
     sub_io = determine_io(sub_nwb_fp)
     scratch_fp = create_temp_nwb(save_dir, save_io)
-    temp_fp = create_temp_nwb(save_dir, save_io)  # temp file for merged NWBFile
-
-    with main_io(main_nwb_fp, "r") as main_io_obj, sub_io(sub_nwb_fp, "r") as sub_io_obj:
-        main_nwb = main_io_obj.read()
-        sub_nwb = sub_io_obj.read()
-        main_nwb = get_nwb_attribute(main_nwb, sub_nwb)
-
-    # Write merged NWBFile to temp file
-    with save_io(temp_fp, "w") as temp_io:
-        temp_io.write(main_nwb)
-
-    # Now open temp file and export to scratch_fp
-    with save_io(temp_fp, "r") as temp_io, save_io(scratch_fp, "w") as out_io:
-        out_io.export(src_io=temp_io, write_args=dict(link_data=False))
-
+    with main_io(main_nwb_fp, "r") as main_io:
+        main_nwb = main_io.read()
+        with sub_io(sub_nwb_fp, "r") as read_io:
+            sub_nwb = read_io.read()
+            main_nwb = get_nwb_attribute(main_nwb, sub_nwb)
+            with save_io(scratch_fp, "w") as io:
+                io.export(src_io=main_io, write_args=dict(link_data=False))
     return scratch_fp
