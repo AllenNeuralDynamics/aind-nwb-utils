@@ -13,6 +13,83 @@ from hdmf.common import DynamicTable
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
 
 
+def cast_timeseries_if_needed(ts_obj):
+    """
+    If TimeSeries data is float64/int64, cast to float32/int32 and return new object.
+    """
+    if not isinstance(ts_obj, TimeSeries):
+        return ts_obj  # Only handle TimeSeries
+
+    data = ts_obj.data
+    if hasattr(data, "dtype") and data.dtype in [np.float64, np.int64]:
+        try:
+            new_dtype = np.float32 if data.dtype == np.float64 else np.int32
+            casted_data = np.asarray(data).astype(new_dtype)
+
+            return TimeSeries(
+                name=ts_obj.name,
+                data=casted_data,
+                unit=ts_obj.unit,
+                rate=ts_obj.rate,
+                conversion=ts_obj.conversion,
+                resolution=ts_obj.resolution,
+                starting_time=ts_obj.starting_time,
+                timestamps=ts_obj.timestamps,
+                description=ts_obj.description,
+                comments=ts_obj.comments,
+                control=ts_obj.control,
+                control_description=ts_obj.control_description,
+            )
+        except Exception as e:
+            print(f"Could not cast TimeSeries '{ts_obj.name}' — {e}")
+    return ts_obj
+
+
+def cast_vector_data_if_needed(obj):
+    """
+    Cast the data inside VectorData objects if necessary.
+    """
+    if isinstance(obj, VectorData) and hasattr(obj, "data"):
+        dtype = getattr(obj.data, "dtype", None)
+        if dtype in [np.float64, np.int64]:
+            try:
+                new_dtype = np.float32 if dtype == np.float64 else np.int32
+                obj.data = np.asarray(obj.data).astype(new_dtype)
+            except Exception as e:
+                print(f"Could not cast VectorData '{obj.name}' — {e}")
+    return obj
+
+
+def get_nwb_attribute(
+    main_io: Union[NWBHDF5IO, NWBZarrIO], sub_io: Union[NWBHDF5IO, NWBZarrIO]
+) -> Union[NWBHDF5IO, NWBZarrIO]:
+    """
+    Merge container-type attributes from one NWB file (sub_io)
+    into another (main_io), with dtype-safe handling.
+    """
+    for field_name in sub_io.fields.keys():
+        attr = getattr(sub_io, field_name)
+
+        if is_non_mergeable(attr):
+            continue
+
+        if isinstance(attr, pynwb.epoch.TimeIntervals):
+            attr.reset_parent()
+            attr.parent = main_io
+            if field_name == "intervals":
+                main_io.add_time_intervals(attr)
+            continue
+
+        if hasattr(attr, "items"):
+            for name, data in attr.items():
+                data = cast_timeseries_if_needed(data)
+                data = cast_vector_data_if_needed(data)
+                add_data(main_io, field_name, name, data)
+        else:
+            raise TypeError(f"Unexpected type for {field_name}: {type(attr)}")
+
+    return main_io
+
 
 def is_non_mergeable(attr: Any):
     """
@@ -73,65 +150,6 @@ def add_data(
         main_io.add_time_intervals(obj)
     else:
         raise ValueError(f"Unknown attribute type: {field}")
-
-
-def get_nwb_attribute(
-    main_io: Union[NWBHDF5IO, NWBZarrIO],
-    sub_io: Union[NWBHDF5IO, NWBZarrIO]
-) -> Union[NWBHDF5IO, NWBZarrIO]:
-    for field_name in sub_io.fields.keys():
-        attr = getattr(sub_io, field_name)
-
-        if is_non_mergeable(attr):
-            continue
-
-        if isinstance(attr, pynwb.epoch.TimeIntervals):
-            attr.reset_parent()
-            attr.parent = main_io
-            if field_name == "intervals":
-                main_io.add_time_intervals(attr)
-            continue
-            
-        if field_name == "electrodes" and isinstance(attr, DynamicTable):
-            print("Replacing electrodes table with sub NWB's electrodes")
-            attr.reset_parent()
-            attr.parent = main_io
-        
-            # overwrite the entire electrodes table
-            main_nwb.electrodes = attr
-
-        if field_name != "electrodes" and isinstance(attr, DynamicTable):
-            main_table = getattr(main_io, field_name, None)
-
-            if main_table is None:
-                # If the main table doesn't exist, set it directly
-                setattr(main_io, field_name, attr)
-            else:
-                print("CONFLICTING tables between main and subject")
-
-        if field_name == "units" and isinstance(attr, pynwb.misc.Units):
-            if len(main_io.units) == 0:
-                attr.reset_parent()
-                attr.parent = main_io
-                main_io.fields['units'] = attr  # direct override
-            continue    
-
-        if hasattr(attr, "items"):
-            for name, data in attr.items():
-                # Optional safety check for VectorData with dtype
-                if hasattr(data, 'data') and hasattr(data.data, 'dtype'):
-                    # Normalize dtype to float32, int32, etc. if needed
-                    dtype = data.data.dtype
-                    if dtype == np.dtype('int64') or dtype == np.dtype('float64'):
-                        try:
-                            data.data = data.data.astype('float32' if dtype.kind == 'f' else 'int32')
-                        except Exception as e:
-                            print(f"Could not cast {field_name}.{name} from {dtype} — {e}")
-                
-                add_data(main_io, field_name, name, data)
-
-    return main_io
-
 
 def combine_nwb_file(
     main_nwb_fp: Path,
