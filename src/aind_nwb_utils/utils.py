@@ -158,8 +158,7 @@ def combine_nwb_file(
     save_io: Union[NWBHDF5IO, NWBZarrIO],
 ) -> Path:
     """
-    Combine two NWB files by merging attributes from a
-    secondary file into a main file.
+    Combine two NWB files by merging attributes from a secondary file into a main file.
 
     Parameters
     ----------
@@ -177,11 +176,29 @@ def combine_nwb_file(
     Path
         Path to the saved combined NWB file.
     """
-    main_io = determine_io(main_nwb_fp)
-    sub_io = determine_io(sub_nwb_fp)
+    main_io_cls = determine_io(main_nwb_fp)
+    sub_io_cls = determine_io(sub_nwb_fp)
+
     scratch_fp = create_temp_nwb(save_dir, save_io)
-    with main_io(main_nwb_fp, "r") as main_io:
+
+    with main_io_cls(main_nwb_fp, "r") as main_io:
         main_nwb = main_io.read()
-        with save_io(scratch_fp, "w") as io:
-            io.export(src_io=main_io, write_args=dict(link_data=False))
+
+    with sub_io_cls(sub_nwb_fp, "r") as sub_io:
+        sub_nwb = sub_io.read()
+
+    main_nwb = get_nwb_attribute(main_nwb, sub_nwb)
+
+    try:
+        with save_io(scratch_fp, "w") as out_io:
+            out_io.write(main_nwb)
+    except Exception as e:
+        print(f"Failed to write combined NWB: {e}")
+        if scratch_fp.exists():
+            if scratch_fp.is_dir():
+                shutil.rmtree(scratch_fp)
+            else:
+                scratch_fp.unlink()
+        raise
+
     return scratch_fp
