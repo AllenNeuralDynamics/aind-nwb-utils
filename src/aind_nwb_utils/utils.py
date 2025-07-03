@@ -41,11 +41,8 @@ def is_non_mergeable(attr: Any):
 
 
 def cast_timeseries_if_needed(ts_obj):
-    """
-    If TimeSeries data is float64/int64, cast to float32/int32 and return new object.
-    """
     if not isinstance(ts_obj, TimeSeries):
-        return ts_obj  # Only handle TimeSeries
+        return ts_obj
 
     data = ts_obj.data
     if hasattr(data, "dtype") and data.dtype in [np.float64, np.int64]:
@@ -57,20 +54,12 @@ def cast_timeseries_if_needed(ts_obj):
                 name=ts_obj.name,
                 data=casted_data,
                 unit=ts_obj.unit,
-                rate=ts_obj.rate,
-                conversion=ts_obj.conversion,
-                resolution=ts_obj.resolution,
-                starting_time=ts_obj.starting_time,
                 timestamps=ts_obj.timestamps,
                 description=ts_obj.description,
-                comments=ts_obj.comments,
-                control=ts_obj.control,
-                control_description=ts_obj.control_description,
             )
         except Exception as e:
             print(f"Could not cast TimeSeries '{ts_obj.name}' — {e}")
     return ts_obj
-
 
 def cast_vectordata_if_needed(obj):
     """
