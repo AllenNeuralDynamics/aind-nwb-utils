@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Union, Any
 
 import pynwb
+import numpy as np
 from hdmf_zarr import NWBZarrIO
 from pynwb import NWBHDF5IO
 from hdmf.common import DynamicTable
