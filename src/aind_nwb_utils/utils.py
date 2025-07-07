@@ -196,7 +196,7 @@ def combine_nwb_file(
     scratch_fp = create_temp_nwb(save_dir, save_io)
     main_nwb_fp = main_nwb_fp.as_posix()
     sub_nwb_fp = sub_nwb_fp.as_posix()
-    scratch_fp = scratch_fp..as_posix()
+    scratch_fp = scratch_fp.as_posix()
     print(main_nwb_fp)
     print(sub_nwb_fp)
     with main_io(main_nwb_fp, "r") as main_io:
