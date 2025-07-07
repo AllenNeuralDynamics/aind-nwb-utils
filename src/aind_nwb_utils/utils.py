@@ -193,12 +193,12 @@ def combine_nwb_file(
     """
     main_io = determine_io(main_nwb_fp)
     sub_io = determine_io(sub_nwb_fp)
-    print(main_nwb_fp)
-    print(sub_nwb_fp)
     scratch_fp = create_temp_nwb(save_dir, save_io)
     main_nwb_fp = str(main_nwb_fp)
     sub_nwb_fp = str(sub_nwb_fp)
     scratch_fp = str(scratch_fp)
+    print(main_nwb_fp)
+    print(sub_nwb_fp)
     with main_io(main_nwb_fp, "r") as main_io:
         main_nwb = main_io.read()
         with sub_io(sub_nwb_fp, "r") as read_io:
