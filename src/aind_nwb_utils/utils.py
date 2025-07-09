@@ -176,12 +176,12 @@ def get_nwb_attribute(
 def combine_nwb_file(
     main_nwb_fp: Path,
     sub_nwb_fp: Path,
-    save_dir: Path,
+    output_path: Path,
     save_io: Union[NWBHDF5IO, NWBZarrIO],
 ) -> Path:
     """
     Combine two NWB files by merging attributes from a
-    secondary file into a main file.
+    secondary file into a main file, and write to output_path.
 
     Parameters
     ----------
@@ -189,8 +189,8 @@ def combine_nwb_file(
         Path to the main NWB file.
     sub_nwb_fp : Path
         Path to the secondary NWB file whose data will be merged.
-    save_dir : Path
-        Directory to save the combined NWB file.
+    output_path : Path
+        Path to write the merged NWB file.
     save_io : Union[NWBHDF5IO, NWBZarrIO]
         IO class used to write the resulting NWB file.
 
@@ -199,19 +199,21 @@ def combine_nwb_file(
     Path
         Path to the saved combined NWB file.
     """
-    main_io = determine_io(main_nwb_fp)
-    sub_io = determine_io(sub_nwb_fp)
-    scratch_fp = create_temp_nwb(save_dir, save_io)
-    main_nwb_fp = main_nwb_fp.as_posix()
-    sub_nwb_fp = sub_nwb_fp.as_posix()
-    scratch_fp = scratch_fp.as_posix()
+    main_io_class = determine_io(main_nwb_fp)
+    sub_io_class = determine_io(sub_nwb_fp)
+
     print(main_nwb_fp)
     print(sub_nwb_fp)
-    with main_io(main_nwb_fp, "r") as main_io:
+    print(f"Saving merged file to: {output_path}")
+
+    with main_io_class(main_nwb_fp, "r") as main_io:
         main_nwb = main_io.read()
-        with sub_io(sub_nwb_fp, "r") as read_io:
-            sub_nwb = read_io.read()
+
+        with sub_io_class(sub_nwb_fp, "r") as sub_io:
+            sub_nwb = sub_io.read()
             main_nwb = get_nwb_attribute(main_nwb, sub_nwb)
-            with save_io(scratch_fp, "w") as io:
-                io.export(src_io=main_io, write_args=dict(link_data=False))
-    return scratch_fp
+
+            with save_io(output_path, "w") as out_io:
+                out_io.export(src_io=main_io, write_args=dict(link_data=False))
+
+    return output_path
