@@ -154,10 +154,18 @@ def get_nwb_attribute(
                 main_io.add_time_intervals(attr)
             continue
 
-        if hasattr(attr, "items"):
+        if isinstance(attr, dict) or hasattr(attr, "keys"):
             for name, data in attr.items():
                 data = cast_timeseries_if_needed(data)
                 data = cast_vectordata_if_needed(data)
+
+                if field_name == "devices":
+                    if name not in main_io.devices:
+                        data.reset_parent()
+                        data.parent = main_io
+                        main_io.add_device(data)
+                    continue
+
                 add_data(main_io, field_name, name, data)
         else:
             raise TypeError(f"Unexpected type for {field_name}: {type(attr)}")
