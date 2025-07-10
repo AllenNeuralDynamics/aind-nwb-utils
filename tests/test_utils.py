@@ -2,6 +2,7 @@
 
 import unittest
 import datetime
+import tempfile
 from pathlib import Path
 
 from pynwb import NWBHDF5IO
@@ -74,9 +75,11 @@ class TestUtils(unittest.TestCase):
 
     def test_get_nwb_attribute(self):
         """Test get_nwb_attribute function"""
-        result = combine_nwb_file(
-            self.behavior_fp, self.eye_tracking_fp, "/test.nwb", NWBHDF5IO
-        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "test.nwb"
+            result = combine_nwb_file(
+                self.behavior_fp, self.eye_tracking_fp, output_path, NWBHDF5IO
+            )
         result_io = determine_io(result)
         with result_io(result, "r") as io:
             result_nwb = io.read()
@@ -87,13 +90,12 @@ class TestUtils(unittest.TestCase):
 
     def test_combine_nwb_file(self):
         """Test combine_nwb_file function"""
-        result_fp = combine_nwb_file(
-            Path(self.eye_tracking_fp),
-            Path(self.behavior_fp),
-            "/test.nwb",
-            NWBHDF5IO
-        )
-        self.assertTrue(result_fp.exists())
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = Path(tmpdir) / "test.nwb"
+            result_fp = combine_nwb_file(
+                self.behavior_fp, self.eye_tracking_fp, output_path, NWBHDF5IO
+            )
+            self.assertTrue(result_fp.exists())
 
 
 if __name__ == "__main__":
