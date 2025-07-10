@@ -10,8 +10,7 @@ from pynwb import TimeSeries
 from pynwb.base import VectorData
 from hdmf_zarr import NWBZarrIO
 from pynwb import NWBHDF5IO
-
-from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
+from aind_nwb_utils.nwb_io import determine_io
 
 
 def is_non_mergeable(attr: Any):
@@ -29,12 +28,16 @@ def is_non_mergeable(attr: Any):
         True if the attribute is a non-container type or
         should be skipped during merging.
     """
-    return isinstance(attr, (str, datetime.datetime, list, pynwb.file.Subject,),)
+    return isinstance(attr, (str,
+                             datetime.datetime,
+                             list,
+                             pynwb.file.Subject,),)
 
 
 def cast_timeseries_if_needed(ts_obj):
     """
-    If TimeSeries data is float64/int64, cast to float32/int32 and return new object.
+    If TimeSeries data is float64/int64
+    cast to float32/int32 and return new object.
 
     Parameters
     ----------
@@ -85,7 +88,7 @@ def cast_vectordata_if_needed(obj):
     Returns
     -------
     Any
-        The original object or a new VectorData object with casted data.
+        The original object or a new VectorData with casted data.
     """
     if isinstance(obj, VectorData) and hasattr(obj, "data"):
         dtype = getattr(obj.data, "dtype", None)
@@ -98,7 +101,12 @@ def cast_vectordata_if_needed(obj):
     return obj
 
 
-def add_data(main_io: Union[NWBHDF5IO, NWBZarrIO], field: str, name: str, obj: Any):
+def add_data(
+    main_io: Union[NWBHDF5IO, NWBZarrIO],
+    field: str,
+    name: str,
+    obj: Any
+):
     """
     Add a data object to the appropriate field in the NWB file.
 
