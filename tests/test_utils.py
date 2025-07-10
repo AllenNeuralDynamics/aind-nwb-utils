@@ -237,5 +237,6 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(result.data.dtype, np.float32)
         np.testing.assert_array_equal(result.data, data.astype(np.float32))
 
+
 if __name__ == "__main__":
     unittest.main()
