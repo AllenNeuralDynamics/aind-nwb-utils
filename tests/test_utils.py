@@ -80,13 +80,13 @@ class TestUtils(unittest.TestCase):
             result = combine_nwb_file(
                 self.behavior_fp, self.eye_tracking_fp, output_path, NWBHDF5IO
             )
-        result_io = determine_io(result)
-        with result_io(result, "r") as io:
-            result_nwb = io.read()
-        eye_io = determine_io(self.eye_tracking_fp)
-        with eye_io(self.eye_tracking_fp, "r") as io:
-            eye_nwb = io.read()
-        self.assertNotEqual(result_nwb, eye_nwb)
+            result_io = determine_io(result)
+            with result_io(result, "r") as io:
+                result_nwb = io.read()
+            eye_io = determine_io(self.eye_tracking_fp)
+            with eye_io(self.eye_tracking_fp, "r") as io:
+                eye_nwb = io.read()
+            self.assertNotEqual(result_nwb, eye_nwb)
 
     def test_combine_nwb_file(self):
         """Test combine_nwb_file function"""
