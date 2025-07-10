@@ -29,15 +29,7 @@ def is_non_mergeable(attr: Any):
         True if the attribute is a non-container type or
         should be skipped during merging.
     """
-    return isinstance(
-        attr,
-        (
-            str,
-            datetime.datetime,
-            list,
-            pynwb.file.Subject,
-        ),
-    )
+    return isinstance(attr, (str, datetime.datetime, list, pynwb.file.Subject,),)
 
 
 def cast_timeseries_if_needed(ts_obj):
@@ -87,9 +79,7 @@ def cast_vectordata_if_needed(obj):
     return obj
 
 
-def add_data(
-    main_io: Union[NWBHDF5IO, NWBZarrIO], field: str, name: str, obj: Any
-):
+def add_data(main_io: Union[NWBHDF5IO, NWBZarrIO], field: str, name: str, obj: Any):
     """
     Add a data object to the appropriate field in the NWB file.
 
