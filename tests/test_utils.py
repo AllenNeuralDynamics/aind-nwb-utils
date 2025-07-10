@@ -88,7 +88,10 @@ class TestUtils(unittest.TestCase):
     def test_combine_nwb_file(self):
         """Test combine_nwb_file function"""
         result_fp = combine_nwb_file(
-            Path(self.eye_tracking_fp), Path(self.behavior_fp), "/test.nwb", NWBHDF5IO
+            Path(self.eye_tracking_fp),
+            Path(self.behavior_fp),
+            "/test.nwb",
+            NWBHDF5IO
         )
         self.assertTrue(result_fp.exists())
 
