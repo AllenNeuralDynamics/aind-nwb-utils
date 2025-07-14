@@ -34,28 +34,24 @@ def is_non_mergeable(attr: Any):
                              pynwb.file.Subject,),)
 
 
-def cast_timeseries_if_needed(ts_obj):
+def downcast_timeseries_precision(ts_obj: TimeSeries) -> TimeSeries:
     """
-    If TimeSeries data is float64/int64
-    cast to float32/int32 and return new object.
+    Cast TimeSeries data from float64/int64 to float32/int32 and return new object.
 
     Parameters
     ----------
     ts_obj : TimeSeries
-        The TimeSeries object to check and potentially cast.
+        The TimeSeries object to downcast.
 
     Returns
     -------
-    ts_obj: TimeSeries or original object
-        The original TimeSeries object or a new one with casted data.
+    TimeSeries
+        A new TimeSeries object with downcasted data, or the original if no casting needed.
     """
-    if not isinstance(ts_obj, TimeSeries):
-        return ts_obj  # Only handle TimeSeries
-
     data = ts_obj.data
     if hasattr(data, "dtype") and data.dtype in [np.float64, np.int64]:
         try:
-            new_dtype = np.float32 if data.dtype == np.float64 else np.int32
+            new_dtype = np.float32
             casted_data = np.asarray(data).astype(new_dtype)
 
             return TimeSeries(
@@ -173,7 +169,8 @@ def get_nwb_attribute(
 
         if isinstance(attr, dict) or hasattr(attr, "keys"):
             for name, data in attr.items():
-                data = cast_timeseries_if_needed(data)
+                if isinstance(data, TimeSeries):
+                    data = downcast_timeseries_precision(data)
                 data = cast_vectordata_if_needed(data)
 
                 if field_name == "devices":
