@@ -155,6 +155,7 @@ def combine_nwb_file(
                 io.export(src_io=main_io, write_args=dict(link_data=False))
     return scratch_fp
 
+
 def get_subject_nwb_object(data_path: Path) -> Subject:
     """
     Return the NWB Subject object made from the metdata files
@@ -175,17 +176,19 @@ def get_subject_nwb_object(data_path: Path) -> Subject:
     subject_json_path = data_path / "subject.json"
 
     if not data_description_path.exists():
-        raise FileNotFoundError(f"No data description json found at {data_description_path}")
+        raise FileNotFoundError(
+            f"No data description json found at {data_description_path}"
+        )
 
     if not subject_json_path.exists():
         raise FileNotFoundError("No subject json found")
-    
+
     with open(data_description_path, "r") as f:
         data_description = json.load(f)
-    
+
     with open(subject_json_path, "r") as f:
         subject_metadata = json.load(f)
-    
+
     session_start_date_string = data_description["creation_time"]
 
     # ported this from subject nwb capsule
@@ -198,7 +201,8 @@ def get_subject_nwb_object(data_path: Path) -> Subject:
         date_format_frac_tz,
     ]
 
-    # Use strptime to parse the string into a datetime object - not sure if this needs to go through all supported formats?
+    # Use strptime to parse the string into a datetime object
+    # not sure if this needs to go through all supported formats?
     session_start_date_time = None
     for date_format in supported_date_formats:
         try:
@@ -214,7 +218,7 @@ def get_subject_nwb_object(data_path: Path) -> Subject:
         tzinfo=pytz.timezone("US/Pacific")
     )
     if session_start_date_time.tzinfo is None:
-        pacific = pytz.timezone('US/Pacific')
+        pacific = pytz.timezone("US/Pacific")
         session_start_date_time = pacific.localize(session_start_date_time)
 
     subject_age = session_start_date_time - subject_dob
@@ -236,6 +240,3 @@ def get_subject_nwb_object(data_path: Path) -> Subject:
         strain=subject_metadata.get("background_strain")
         or subject_metadata.get("breeding_group"),
     )
-    
-
-
