@@ -1,22 +1,23 @@
 """Example test template."""
 
-import unittest
 import datetime
+import json
+import unittest
 from pathlib import Path
+from unittest.mock import MagicMock, create_autospec
 
-from pynwb import NWBHDF5IO
-from pynwb import NWBFile
+from pynwb import NWBHDF5IO, NWBFile
 from pynwb.base import Images  # example NWB container
 from pynwb.file import Subject
 
-from unittest.mock import create_autospec, MagicMock
-
 from aind_nwb_utils.nwb_io import determine_io
 from aind_nwb_utils.utils import (
-    combine_nwb_file,
-    is_non_mergeable,
+    _get_session_start_date_time,
     add_data,
-    get_subject_nwb_object
+    combine_nwb_file,
+    create_base_nwb_file,
+    get_subject_nwb_object,
+    is_non_mergeable,
 )
 
 
@@ -94,10 +95,33 @@ class TestUtils(unittest.TestCase):
         )
         self.assertTrue(result_fp.exists())
 
+    def test_get_session_start_date_time(self):
+        """Test _get_session_start_date_time"""
+        with open(Path("tests/resources/data_description.json"), "r") as f:
+            data_description = json.load(f)
+
+        session_start_date_time = _get_session_start_date_time(
+            data_description["creation_time"]
+        )
+        self.assertTrue(isinstance(session_start_date_time, datetime.datetime))
+
     def test_get_subject_nwb_object(self):
         """Test get_subject_nwb_object"""
-        subject_object = get_subject_nwb_object(Path("tests/resources"))
+        with open(Path("tests/resources/data_description.json"), "r") as f:
+            data_description = json.load(f)
+
+        with open(Path("tests/resources/subject.json"), "r") as f:
+            subject_metadata = json.load(f)
+
+        subject_object = get_subject_nwb_object(
+            data_description, subject_metadata
+        )
         self.assertTrue(isinstance(subject_object, Subject))
+
+    def test_create_nwb_base_file(self):
+        """Test create_nwb_base_file"""
+        nwb_file_base = create_base_nwb_file(Path("tests/resources"))
+        self.assertTrue(isinstance(nwb_file_base, NWBFile))
 
 
 if __name__ == "__main__":
