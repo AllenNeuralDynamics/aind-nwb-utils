@@ -7,6 +7,7 @@ from pathlib import Path
 from pynwb import NWBHDF5IO
 from pynwb import NWBFile
 from pynwb.base import Images  # example NWB container
+from pynwb.file import Subject
 
 from unittest.mock import create_autospec, MagicMock
 
@@ -15,6 +16,7 @@ from aind_nwb_utils.utils import (
     combine_nwb_file,
     is_non_mergeable,
     add_data,
+    get_subject_nwb_object
 )
 
 
@@ -91,6 +93,11 @@ class TestUtils(unittest.TestCase):
             Path(self.eye_tracking_fp), Path(self.behavior_fp), None, NWBHDF5IO
         )
         self.assertTrue(result_fp.exists())
+
+    def test_get_subject_nwb_object(self):
+        """Test get_subject_nwb_object"""
+        subject_object = get_subject_nwb_object(Path("tests/resources"))
+        self.assertTrue(isinstance(subject_object, Subject))
 
 
 if __name__ == "__main__":

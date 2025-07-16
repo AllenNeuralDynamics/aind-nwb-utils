@@ -1,14 +1,18 @@
 """Utility functions for working with NWB files."""
 
 import datetime
+import pytz
+from datetime import datetime as dt
 from pathlib import Path
 from typing import Union, Any
 
 import pynwb
 from hdmf_zarr import NWBZarrIO
 from pynwb import NWBHDF5IO
+from pynwb.file import Subject
 
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
+import json
 
 
 def is_non_mergeable(attr: Any):
@@ -150,3 +154,89 @@ def combine_nwb_file(
             with save_io(scratch_fp, "w") as io:
                 io.export(src_io=main_io, write_args=dict(link_data=False))
     return scratch_fp
+
+
+def get_subject_nwb_object(data_path: Path) -> Subject:
+    """
+    Return the NWB Subject object made from the metdata files
+
+    Parameters
+    ----------
+    data_path : Path
+        Path to the data directory where metadata files live
+
+    Returns
+    -------
+    Subject
+        The Subject object containing metadata such as subject ID,
+        species, sex, date of birth, and other experimental details.
+    """
+
+    data_description_path = data_path / "data_description.json"
+    subject_json_path = data_path / "subject.json"
+
+    if not data_description_path.exists():
+        raise FileNotFoundError(
+            f"No data description json found at {data_description_path}"
+        )
+
+    if not subject_json_path.exists():
+        raise FileNotFoundError("No subject json found")
+
+    with open(data_description_path, "r") as f:
+        data_description = json.load(f)
+
+    with open(subject_json_path, "r") as f:
+        subject_metadata = json.load(f)
+
+    session_start_date_string = data_description["creation_time"]
+
+    # ported this from subject nwb capsule
+    date_format_no_tz = "%Y-%m-%dT%H:%M:%S"
+    date_format_tz = "%Y-%m-%dT%H:%M:%S%z"
+    date_format_frac_tz = "%Y-%m-%dT%H:%M:%S.%f%z"
+    supported_date_formats = [
+        date_format_no_tz,
+        date_format_tz,
+        date_format_frac_tz,
+    ]
+
+    # Use strptime to parse the string into a datetime object
+    # not sure if this needs to go through all supported formats?
+    session_start_date_time = None
+    for date_format in supported_date_formats:
+        try:
+            session_start_date_time = dt.strptime(
+                session_start_date_string, date_format
+            )
+            break
+        except Exception:
+            pass
+
+    dob = subject_metadata["date_of_birth"]
+    subject_dob = dt.strptime(dob, "%Y-%m-%d").replace(
+        tzinfo=pytz.timezone("US/Pacific")
+    )
+    if session_start_date_time.tzinfo is None:
+        pacific = pytz.timezone("US/Pacific")
+        session_start_date_time = pacific.localize(session_start_date_time)
+
+    subject_age = session_start_date_time - subject_dob
+
+    age = "P" + str(subject_age.days) + "D"
+    if isinstance(subject_metadata["species"], dict):
+        species = subject_metadata["species"]["name"]
+    else:
+        species = subject_metadata["species"]
+
+    return Subject(
+        subject_id=subject_metadata["subject_id"],
+        species=species,
+        sex=subject_metadata["sex"][0].upper(),
+        date_of_birth=subject_dob,
+        age=age,
+        genotype=subject_metadata["genotype"],
+        description=None,
+        strain=subject_metadata.get("background_strain")
+        or subject_metadata.get("breeding_group"),
+    )

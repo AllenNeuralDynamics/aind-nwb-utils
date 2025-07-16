@@ -1,0 +1,74 @@
+{
+   "creation_time": "2025-05-13T16:16:16-07:00",
+   "data_level": "raw",
+   "data_summary": null,
+   "describedBy": "https://raw.githubusercontent.com/AllenNeuralDynamics/aind-data-schema/main/src/aind_data_schema/core/data_description.py",
+   "funding_source": [
+      {
+         "fundee": null,
+         "funder": {
+            "abbreviation": "AI",
+            "name": "Allen Institute",
+            "registry": {
+               "abbreviation": "ROR",
+               "name": "Research Organization Registry"
+            },
+            "registry_identifier": "03cpe7c52"
+         },
+         "grant_number": "Simons863738"
+      },
+      {
+         "fundee": null,
+         "funder": {
+            "abbreviation": null,
+            "name": "Simons Foundation",
+            "registry": {
+               "abbreviation": "ROR",
+               "name": "Research Organization Registry"
+            },
+            "registry_identifier": "01cmst727"
+         },
+         "grant_number": "Simons863738"
+      }
+   ],
+   "group": null,
+   "institution": {
+      "abbreviation": "AIND",
+      "name": "Allen Institute for Neural Dynamics",
+      "registry": {
+         "abbreviation": "ROR",
+         "name": "Research Organization Registry"
+      },
+      "registry_identifier": "04szwah67"
+   },
+   "investigators": [
+      {
+         "abbreviation": null,
+         "name": "John Doe",
+         "registry": null,
+         "registry_identifier": null
+      }
+   ],
+   "label": null,
+   "license": "CC-BY-4.0",
+   "modality": [
+      {
+         "abbreviation": "behavior",
+         "name": "Behavior"
+      },
+      {
+         "abbreviation": "behavior-videos",
+         "name": "Behavior videos"
+      }
+   ],
+   "name": "behavior_789923_2025-05-13_16-16-16",
+   "platform": {
+      "abbreviation": "behavior",
+      "name": "Behavior platform"
+   },
+   "project_name": "Cognitive flexibility in patch foraging",
+   "related_data": [],
+   "restrictions": null,
+   "schema_version": "1.0.3",
+   "subject_id": "789923"
+}
