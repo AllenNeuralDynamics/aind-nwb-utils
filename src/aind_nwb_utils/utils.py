@@ -1,18 +1,19 @@
 """Utility functions for working with NWB files."""
 
 import datetime
-import pytz
+import json
+import uuid
 from datetime import datetime as dt
 from pathlib import Path
-from typing import Union, Any
+from typing import Any, Union
 
 import pynwb
+import pytz
 from hdmf_zarr import NWBZarrIO
 from pynwb import NWBHDF5IO
 from pynwb.file import Subject
 
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
-import json
 
 
 def is_non_mergeable(attr: Any):
@@ -156,41 +157,20 @@ def combine_nwb_file(
     return scratch_fp
 
 
-def get_subject_nwb_object(data_path: Path) -> Subject:
+def _get_session_start_date_time(session_start_date_string: str) -> datetime:
     """
-    Return the NWB Subject object made from the metdata files
+    Returns the datetime given the string
 
     Parameters
     ----------
-    data_path : Path
-        Path to the data directory where metadata files live
+    session_start_date_string: str
+        The session start date as a string
 
     Returns
     -------
-    Subject
-        The Subject object containing metadata such as subject ID,
-        species, sex, date of birth, and other experimental details.
+    datetime
+        The session start datetime object
     """
-
-    data_description_path = data_path / "data_description.json"
-    subject_json_path = data_path / "subject.json"
-
-    if not data_description_path.exists():
-        raise FileNotFoundError(
-            f"No data description json found at {data_description_path}"
-        )
-
-    if not subject_json_path.exists():
-        raise FileNotFoundError("No subject json found")
-
-    with open(data_description_path, "r") as f:
-        data_description = json.load(f)
-
-    with open(subject_json_path, "r") as f:
-        subject_metadata = json.load(f)
-
-    session_start_date_string = data_description["creation_time"]
-
     # ported this from subject nwb capsule
     date_format_no_tz = "%Y-%m-%dT%H:%M:%S"
     date_format_tz = "%Y-%m-%dT%H:%M:%S%z"
@@ -213,13 +193,43 @@ def get_subject_nwb_object(data_path: Path) -> Subject:
         except Exception:
             pass
 
+    if session_start_date_time.tzinfo is None:
+        pacific = pytz.timezone("US/Pacific")
+        session_start_date_time = pacific.localize(session_start_date_time)
+
+    return session_start_date_time
+
+
+def get_subject_nwb_object(
+    data_description: dict[str, Any], subject_metadata: dict[str, Any]
+) -> Subject:
+    """
+    Return the NWB Subject object made from the metadata files
+
+    Parameters
+    ----------
+    data_description : dict[str, Any]
+        Data description json file
+
+    subject_metadata: dict[str, Any]
+        Subject metadata json file
+
+    Returns
+    -------
+    Subject
+        The Subject object containing metadata such as subject ID,
+        species, sex, date of birth, and other experimental details.
+    """
+
+    session_start_date_string = data_description["creation_time"]
     dob = subject_metadata["date_of_birth"]
     subject_dob = dt.strptime(dob, "%Y-%m-%d").replace(
         tzinfo=pytz.timezone("US/Pacific")
     )
-    if session_start_date_time.tzinfo is None:
-        pacific = pytz.timezone("US/Pacific")
-        session_start_date_time = pacific.localize(session_start_date_time)
+
+    session_start_date_time = _get_session_start_date_time(
+        session_start_date_string
+    )
 
     subject_age = session_start_date_time - subject_dob
 
@@ -240,3 +250,53 @@ def get_subject_nwb_object(data_path: Path) -> Subject:
         strain=subject_metadata.get("background_strain")
         or subject_metadata.get("breeding_group"),
     )
+
+
+def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
+    """
+    Creates the base nwb file given the path to the metadata files
+
+    Parameters
+    ----------
+    data_path: Path
+        The path with the relevant metadata files
+
+    Returns
+    -------
+    pynwb.NWBFile
+        The base nwb file with subject metadata
+    """
+    data_description_path = data_path / "data_description.json"
+    subject_json_path = data_path / "subject.json"
+
+    if not data_description_path.exists():
+        raise FileNotFoundError(
+            f"No data description json found at {data_description_path}"
+        )
+
+    if not subject_json_path.exists():
+        raise FileNotFoundError(
+            f"No subject json found at {subject_json_path}"
+        )
+
+    with open(data_description_path, "r") as f:
+        data_description = json.load(f)
+
+    with open(subject_json_path, "r") as f:
+        subject_metadata = json.load(f)
+
+    nwb_subject = get_subject_nwb_object(data_description, subject_metadata)
+    session_start_date_time = _get_session_start_date_time(
+        data_description["creation_time"]
+    )
+
+    nwb_file = pynwb.NWBFile(
+        session_description="Base NWB file generated with subject metadata",
+        identifier=str(uuid.uuid4()),
+        session_start_time=session_start_date_time,
+        institution=data_description["institution"].get("name", None),
+        subject=nwb_subject,
+        session_id=data_description["name"],
+    )
+
+    return nwb_file
