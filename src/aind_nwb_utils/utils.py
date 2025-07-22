@@ -275,7 +275,9 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
         )
 
     if not subject_json_path.exists():
-        raise FileNotFoundError("No subject json found")
+        raise FileNotFoundError(
+            f"No subject json found at {subject_json_path}"
+        )
 
     with open(data_description_path, "r") as f:
         data_description = json.load(f)
