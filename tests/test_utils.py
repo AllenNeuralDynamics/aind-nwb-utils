@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, create_autospec
 
 from pynwb import NWBHDF5IO, NWBFile
 from pynwb.base import Images  # example NWB container
-from pynwb.file import Subject
+from pynwb.file import Device, Subject
 
 from aind_nwb_utils.nwb_io import determine_io
 from aind_nwb_utils.utils import (
@@ -16,6 +16,7 @@ from aind_nwb_utils.utils import (
     add_data,
     combine_nwb_file,
     create_base_nwb_file,
+    get_ephys_devices_from_rig_metadata,
     get_subject_nwb_object,
     is_non_mergeable,
 )
@@ -122,7 +123,16 @@ class TestUtils(unittest.TestCase):
         """Test create_nwb_base_file"""
         nwb_file_base = create_base_nwb_file(Path("tests/resources"))
         self.assertTrue(isinstance(nwb_file_base, NWBFile))
-
+    
+    def test_get_ephys_devices_from_rig_metadata(self):
+        """Test get_ephys_devices_from_rig_metadata"""
+        devices, devices_target_location = get_ephys_devices_from_rig_metadata("tests/resources")
+        self.assertIsInstance(devices, dict)
+        self.assertIsInstance(devices_target_location, dict)
+        self.assertTrue(devices.keys())
+        self.assertTrue(devices.keys())
+        self.assertIsInstance(devices["Probe A"], Device)
+        self.assertEqual(devices_target_location["Probe A"], "LGd")
 
 if __name__ == "__main__":
     unittest.main()
