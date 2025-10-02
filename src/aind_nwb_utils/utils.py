@@ -386,9 +386,9 @@ def get_ephys_devices_from_rig_metadata(session_folder: str, segment_index: int 
         elif parse(rig_schema_version) >= parse("2.0.0"):
             ephys_modules = []
             for data_stream in data_streams:
-                ephys_modules.extend([stream["ephys_assembly_config"] for stream in data_stream["configurations"] if "ephys_assembly_config" in stream])
-            ephys_assemblies = [assembly for assembly in rig["components"] if "ephys_assembly" in assembly]
-            laser_assemblies = [assembly for assembly in rig["components"] if "laser_assembly" in assembly]
+                ephys_modules = [stream for stream in data_stream["configurations"] if stream["object_type"] == "Ephys assembly config"]
+            ephys_assemblies = [assembly for assembly in rig["components"] if assembly["object_type"] == "Ephys assembly"]
+            laser_assemblies = [assembly for assembly in rig["components"] if assembly["object_type"] == "Laser assembly"]
 
             # gather all probes and lasers
             probe_devices = {}
@@ -442,9 +442,8 @@ def get_ephys_devices_from_rig_metadata(session_folder: str, segment_index: int 
             devices = {}
             devices_target_location = {}
             for ephys_module in ephys_modules:
-                assembly_name = ephys_module["device_name"]
                 for probe_name, probe_device in probe_devices.items():
-                    if probe_name in assembly_name and probe_name not in devices:
+                    if probe_name not in devices:
                         devices[probe_name] = probe_device
                         device_target_location = None
                         probe_configs = ephys_module["probes"]
