@@ -123,16 +123,19 @@ class TestUtils(unittest.TestCase):
         """Test create_nwb_base_file"""
         nwb_file_base = create_base_nwb_file(Path("tests/resources"))
         self.assertTrue(isinstance(nwb_file_base, NWBFile))
-    
+
     def test_get_ephys_devices_from_rig_metadata(self):
         """Test get_ephys_devices_from_rig_metadata"""
-        devices, devices_target_location = get_ephys_devices_from_rig_metadata("tests/resources")
+        devices, devices_target_location = get_ephys_devices_from_rig_metadata(
+            "tests/resources"
+        )
         self.assertIsInstance(devices, dict)
         self.assertIsInstance(devices_target_location, dict)
         self.assertTrue(devices.keys())
         self.assertTrue(devices.keys())
         self.assertIsInstance(devices["Probe A"], Device)
         self.assertEqual(devices_target_location["Probe A"], "LGd")
+
 
 if __name__ == "__main__":
     unittest.main()
