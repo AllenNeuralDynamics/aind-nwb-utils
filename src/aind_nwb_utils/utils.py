@@ -305,7 +305,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
 
 
 def get_ephys_devices_from_rig_metadata(  # noqa: C901
-    session_folder: str, segment_index: int = 0
+    session_folder: str
 ) -> Union[tuple[dict, dict], tuple[None, None]]:
     """
     Return NWB devices from metadata target locations.
