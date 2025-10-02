@@ -132,7 +132,7 @@ class TestUtils(unittest.TestCase):
         self.assertIsInstance(devices, dict)
         self.assertIsInstance(devices_target_location, dict)
         self.assertTrue(devices.keys())
-        self.assertTrue(devices.keys())
+        self.assertTrue(devices_target_location.keys())
         self.assertIsInstance(devices["Probe A"], Device)
         self.assertEqual(devices_target_location["Probe A"], "LGd")
 
