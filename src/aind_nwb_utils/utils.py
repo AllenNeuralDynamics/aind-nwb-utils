@@ -534,8 +534,8 @@ def get_laser_description_manufacturer(laser, type) -> tuple[str, str]:
     wavelength = laser.get("wavelength", None)
     if wavelength is not None:
         laser_device_description += f" - Wavelength: {wavelength} "
-        laser_device_description += f"{
-            laser.get('wavelength_unit', 'nanometer')}"
+        laser_device_description += \
+            f"{laser.get('wavelength_unit', 'nanometer')}"
     max_power = laser.get("maximum_power", None)
     if max_power is not None:
         laser_device_description += (
