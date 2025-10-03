@@ -360,21 +360,21 @@ def get_ephys_devices_from_rig_metadata(  # noqa: C901
         session_schema_version = session.get("schema_version", None)
 
         if session_schema_version is None:
-            warnings.warn("Session file does not have schema_version")
+            warnings.warn("Acquisition file does not have schema_version")
             return None, None
         if parse(session_schema_version) >= parse("2.0.0"):
             data_streams = session.get("data_streams", None)
             if data_streams is None:
-                warnings.warn("Session file does not have data_streams")
+                warnings.warn("Acquisition file does not have data_streams")
                 return None, None
         else:
             warnings.warn(
-                f"v{session_schema_version} for session "
+                f"v{session_schema_version} for acquisition "
                 "schema is not currently supported"
             )
             return None, None
     else:
-        warnings.warn(f"Session file not found in {session_folder}")
+        warnings.warn(f"Acquisition file not found in {session_folder}")
         return None, None
 
     stimulus_epochs = session.get("stimulus_epochs", None)
@@ -386,7 +386,7 @@ def get_ephys_devices_from_rig_metadata(  # noqa: C901
     if rig is not None:
         rig_schema_version = rig.get("schema_version", None)
         if rig_schema_version is None:
-            warnings.warn("Rig file does not have schema_version")
+            warnings.warn("Instrument file does not have schema_version")
         elif parse(rig_schema_version) >= parse("2.0.0"):
             ephys_modules = []
             for data_stream in data_streams:
@@ -505,11 +505,11 @@ def get_ephys_devices_from_rig_metadata(  # noqa: C901
                         ]
         else:
             warnings.warn(
-                f"v{rig_schema_version} for rig schema is "
+                f"v{rig_schema_version} for instrument schema is "
                 "not currently supported"
             )
     else:
-        warnings.warn(f"Rig file not found in {session_folder}")
+        warnings.warn(f"Instrument file not found in {session_folder}")
 
     return devices, devices_target_location
 
