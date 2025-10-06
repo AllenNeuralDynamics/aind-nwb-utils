@@ -304,7 +304,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     return nwb_file
 
 
-def get_ephys_devices_from_rig_metadata(  # noqa: C901
+def get_ephys_devices_from_metadata(  # noqa: C901
     session_folder: str,
 ) -> Union[tuple[dict, dict], tuple[None, None]]:
     """
@@ -366,7 +366,7 @@ def get_ephys_devices_from_rig_metadata(  # noqa: C901
     data_streams = None
     if ads_2:  # ADS > 2.0
         if acquisition is not None and instrument is not None:
-            acquisition_schema_version = session.get("schema_version", None)
+            acquisition_schema_version = acquisition.get("schema_version", None)
 
             if parse(acquisition_schema_version) >= parse("2.0.0"):
                 data_streams = acquisition.get("data_streams", None)
