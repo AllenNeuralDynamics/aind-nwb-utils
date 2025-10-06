@@ -384,9 +384,6 @@ def get_ephys_devices_from_metadata(  # noqa: C901
                     "schema is not currently supported"
                 )
                 return None, None
-            if data_streams is None:
-                warnings.warn("Acquisition does not have data_streams")
-                return None, None
 
             # Parse stimulus epochs to retrieve devices
             stimulus_epochs = acquisition.get("stimulus_epochs", None)
@@ -398,6 +395,7 @@ def get_ephys_devices_from_metadata(  # noqa: C901
             instrument_schema_version = instrument.get("schema_version", None)
             if instrument_schema_version is None:
                 warnings.warn("Instrument file does not have schema_version")
+                return None, None
             elif parse(instrument_schema_version) >= parse("2.0.0"):
                 ephys_modules = []
                 for data_stream in data_streams:
@@ -421,6 +419,7 @@ def get_ephys_devices_from_metadata(  # noqa: C901
                     f"v{instrument_schema_version} for instrument schema is "
                     "not currently supported"
                 )
+                return None, None
             # gather all probes and lasers
             probe_devices = {}
             laser_devices = {}
@@ -540,6 +539,8 @@ def get_ephys_devices_from_metadata(  # noqa: C901
                         devices[stimulus_device_name] = laser_devices[
                             stimulus_device_name
                         ]
+
+            return devices, devices_target_location
         else:
             warnings.warn(
                 "Acquisition and and instrument metadata are both required."
@@ -554,7 +555,9 @@ def get_ephys_devices_from_metadata(  # noqa: C901
                 return None, None
             if parse(session_schema_version) >= parse("0.3.0"):
                 data_streams = session.get("data_streams", None)
-                acquisition = session
+                if data_streams is None:
+                    warnings.warn("Acquisition does not have data_streams")
+                    return None, None
             else:
                 warnings.warn(
                     f"v{session_schema_version} for session schema is not "
@@ -562,12 +565,8 @@ def get_ephys_devices_from_metadata(  # noqa: C901
                 )
                 return None, None
 
-            if data_streams is None:
-                warnings.warn("Acquisition does not have data_streams")
-                return None, None
-
             # Parse stimulus epochs to retrieve devices
-            stimulus_epochs = acquisition.get("stimulus_epochs", None)
+            stimulus_epochs = session.get("stimulus_epochs", None)
             stimulus_device_names = []
             if stimulus_epochs is not None:
                 for epoch in stimulus_epochs:
@@ -576,7 +575,10 @@ def get_ephys_devices_from_metadata(  # noqa: C901
                     )
 
             rig_schema_version = rig.get("schema_version", None)
-            if parse(rig_schema_version) >= parse("0.5.1"):
+            if rig_schema_version is None:
+                warnings.warn("Rig file does not have schema_version")
+                return None, None
+            elif parse(rig_schema_version) >= parse("0.5.1"):
                 ephys_modules = []
                 for data_stream in data_streams:
                     ephys_modules.extend(data_stream["ephys_modules"])
@@ -672,39 +674,39 @@ def get_ephys_devices_from_metadata(  # noqa: C901
                             external_laser_device
                         )
 
-                # get probes and lasers used in the session
-                devices = {}
-                devices_target_location = {}
+            # get probes and lasers used in the session
+            devices = {}
+            devices_target_location = {}
 
-                for ephys_module in ephys_modules:
-                    assembly_name = ephys_module["assembly_name"]
+            for ephys_module in ephys_modules:
+                assembly_name = ephys_module["assembly_name"]
 
-                    for probe_name, probe_device in probe_devices.items():
-                        if (
-                            probe_name in assembly_name
-                            and probe_name not in devices
-                        ):
-                            devices[probe_name] = probe_device
-                            device_target_location = None
-                            primary_targeted_structure = ephys_module.get(
-                                "primary_targeted_structure"
-                            )
-                            if primary_targeted_structure is not None:
-                                if isinstance(
-                                    primary_targeted_structure, dict
-                                ):
-                                    device_target_location = (
-                                        primary_targeted_structure.get(
-                                            "acronym"
-                                        )
+                for probe_name, probe_device in probe_devices.items():
+                    if (
+                        probe_name in assembly_name
+                        and probe_name not in devices
+                    ):
+                        devices[probe_name] = probe_device
+                        device_target_location = None
+                        primary_targeted_structure = ephys_module.get(
+                            "primary_targeted_structure"
+                        )
+                        if primary_targeted_structure is not None:
+                            if isinstance(
+                                primary_targeted_structure, dict
+                            ):
+                                device_target_location = (
+                                    primary_targeted_structure.get(
+                                        "acronym"
                                     )
-                                else:
-                                    device_target_location = (
-                                        primary_targeted_structure
-                                    )
-                            devices_target_location[probe_name] = (
-                                device_target_location
-                            )
+                                )
+                            else:
+                                device_target_location = (
+                                    primary_targeted_structure
+                                )
+                        devices_target_location[probe_name] = (
+                            device_target_location
+                        )
 
             if len(stimulus_device_names) > 0:
                 for stimulus_device_name in stimulus_device_names:
@@ -715,11 +717,10 @@ def get_ephys_devices_from_metadata(  # noqa: C901
                         devices[stimulus_device_name] = laser_devices[
                             stimulus_device_name
                         ]
+            return devices, devices_target_location
         else:
             warnings.warn("Session and rig metadata are both required.")
             return None, None
-
-    return devices, devices_target_location
 
 
 def get_laser_description_manufacturer(laser, type) -> tuple[str, str]:
