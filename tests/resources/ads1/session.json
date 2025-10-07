@@ -1,0 +1,712 @@
+{
+   "active_mouse_platform": false,
+   "anaesthesia": null,
+   "animal_weight_post": "23.94",
+   "animal_weight_prior": null,
+   "calibrations": [],
+   "data_streams": [
+      {
+         "camera_names": [
+            "Face Camera Assembly",
+            "Body Camera Assembly"
+         ],
+         "daq_names": [
+            "Harp Behavior",
+            "Neuropixels Basestation",
+            "Harp Sound Card",
+            "Lickety split left",
+            "Lickety split right"
+         ],
+         "detectors": [],
+         "ephys_modules": [
+            {
+               "anatomical_coordinates": null,
+               "anatomical_reference": null,
+               "angle_unit": "degrees",
+               "arc_angle": "10.0",
+               "assembly_name": "Probe A assembly",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "dye": "DiI",
+               "implant_hole_number": 7,
+               "manipulator_coordinates": {
+                  "unit": "micrometer",
+                  "x": "6444.0",
+                  "y": "7644.0",
+                  "z": "9374.0"
+               },
+               "module_angle": "35.0",
+               "notes": null,
+               "other_targeted_structure": null,
+               "primary_targeted_structure": {
+                  "acronym": "ACB",
+                  "atlas": "CCFv3",
+                  "id": "56",
+                  "name": "Nucleus accumbens"
+               },
+               "rotation_angle": "0",
+               "surface_z": null,
+               "surface_z_unit": "micrometer",
+               "targeted_ccf_coordinates": []
+            },
+            {
+               "anatomical_coordinates": null,
+               "anatomical_reference": null,
+               "angle_unit": "degrees",
+               "arc_angle": "10.0",
+               "assembly_name": "Probe B assembly",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "dye": "DiI",
+               "implant_hole_number": 3,
+               "manipulator_coordinates": {
+                  "unit": "micrometer",
+                  "x": "8583.0",
+                  "y": "11084.0",
+                  "z": "5694.0"
+               },
+               "module_angle": "-35.0",
+               "notes": null,
+               "other_targeted_structure": null,
+               "primary_targeted_structure": {
+                  "acronym": "PL",
+                  "atlas": "CCFv3",
+                  "id": "972",
+                  "name": "Prelimbic area"
+               },
+               "rotation_angle": "135",
+               "surface_z": null,
+               "surface_z_unit": "micrometer",
+               "targeted_ccf_coordinates": []
+            }
+         ],
+         "fiber_connections": [],
+         "fiber_modules": [],
+         "light_sources": [],
+         "manipulator_modules": [],
+         "mri_scans": [],
+         "notes": null,
+         "ophys_fovs": [],
+         "slap_fovs": [],
+         "software": [],
+         "stack_parameters": null,
+         "stick_microscopes": [
+            {
+               "angle_unit": "degrees",
+               "arc_angle": "-180",
+               "assembly_name": "Probe camera 1",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "module_angle": "-180",
+               "notes": "did not record angles, did not calibrate.",
+               "rotation_angle": "0"
+            },
+            {
+               "angle_unit": "degrees",
+               "arc_angle": "-180",
+               "assembly_name": "Probe camera 2",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "module_angle": "-180",
+               "notes": "Did not record angles, did not calibrate",
+               "rotation_angle": "0"
+            },
+            {
+               "angle_unit": "degrees",
+               "arc_angle": "-180",
+               "assembly_name": "Probe camera 3",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "module_angle": "-180",
+               "notes": "Did not record angles, did not calibrate",
+               "rotation_angle": "0"
+            }
+         ],
+         "stream_end_time": "2025-09-26T14:25:31-07:00",
+         "stream_modalities": [
+            {
+               "abbreviation": "ecephys",
+               "name": "Extracellular electrophysiology"
+            },
+            {
+               "abbreviation": "behavior-videos",
+               "name": "Behavior videos"
+            },
+            {
+               "abbreviation": "behavior",
+               "name": "Behavior"
+            }
+         ],
+         "stream_start_time": "2025-09-26T12:57:44-07:00"
+      },
+      {
+         "camera_names": [],
+         "daq_names": [
+            "Harp Behavior",
+            "Neuropixels Basestation",
+            "Harp Sound Card",
+            "Lickety split left",
+            "Lickety split right"
+         ],
+         "detectors": [],
+         "ephys_modules": [
+            {
+               "anatomical_coordinates": null,
+               "anatomical_reference": null,
+               "angle_unit": "degrees",
+               "arc_angle": "10.0",
+               "assembly_name": "Probe A assembly",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "dye": "DiI",
+               "implant_hole_number": 7,
+               "manipulator_coordinates": {
+                  "unit": "micrometer",
+                  "x": "6444.0",
+                  "y": "7644.0",
+                  "z": "9374.0"
+               },
+               "module_angle": "35.0",
+               "notes": null,
+               "other_targeted_structure": null,
+               "primary_targeted_structure": {
+                  "acronym": "ACB",
+                  "atlas": "CCFv3",
+                  "id": "56",
+                  "name": "Nucleus accumbens"
+               },
+               "rotation_angle": "0",
+               "surface_z": null,
+               "surface_z_unit": "micrometer",
+               "targeted_ccf_coordinates": []
+            },
+            {
+               "anatomical_coordinates": null,
+               "anatomical_reference": null,
+               "angle_unit": "degrees",
+               "arc_angle": "10.0",
+               "assembly_name": "Probe B assembly",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "dye": "DiI",
+               "implant_hole_number": 3,
+               "manipulator_coordinates": {
+                  "unit": "micrometer",
+                  "x": "8583.0",
+                  "y": "11084.0",
+                  "z": "5694.0"
+               },
+               "module_angle": "-35.0",
+               "notes": null,
+               "other_targeted_structure": null,
+               "primary_targeted_structure": {
+                  "acronym": "PL",
+                  "atlas": "CCFv3",
+                  "id": "972",
+                  "name": "Prelimbic area"
+               },
+               "rotation_angle": "135",
+               "surface_z": null,
+               "surface_z_unit": "micrometer",
+               "targeted_ccf_coordinates": []
+            }
+         ],
+         "fiber_connections": [],
+         "fiber_modules": [],
+         "light_sources": [],
+         "manipulator_modules": [],
+         "mri_scans": [],
+         "notes": null,
+         "ophys_fovs": [],
+         "slap_fovs": [],
+         "software": [],
+         "stack_parameters": null,
+         "stick_microscopes": [
+            {
+               "angle_unit": "degrees",
+               "arc_angle": "-180",
+               "assembly_name": "Probe camera 1",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "module_angle": "-180",
+               "notes": "did not record angles, did not calibrate.",
+               "rotation_angle": "0"
+            },
+            {
+               "angle_unit": "degrees",
+               "arc_angle": "-180",
+               "assembly_name": "Probe camera 2",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "module_angle": "-180",
+               "notes": "Did not record angles, did not calibrate",
+               "rotation_angle": "0"
+            },
+            {
+               "angle_unit": "degrees",
+               "arc_angle": "-180",
+               "assembly_name": "Probe camera 3",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "module_angle": "-180",
+               "notes": "Did not record angles, did not calibrate",
+               "rotation_angle": "0"
+            }
+         ],
+         "stream_end_time": "2025-09-26T14:27:18-07:00",
+         "stream_modalities": [
+            {
+               "abbreviation": "ecephys",
+               "name": "Extracellular electrophysiology"
+            }
+         ],
+         "stream_start_time": "2025-09-26T14:25:49-07:00"
+      },
+      {
+         "camera_names": [],
+         "daq_names": [
+            "Harp Behavior",
+            "Neuropixels Basestation",
+            "Harp Sound Card",
+            "Lickety split left",
+            "Lickety split right"
+         ],
+         "detectors": [],
+         "ephys_modules": [
+            {
+               "anatomical_coordinates": null,
+               "anatomical_reference": null,
+               "angle_unit": "degrees",
+               "arc_angle": "10.0",
+               "assembly_name": "Probe A assembly",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "dye": "DiI",
+               "implant_hole_number": 7,
+               "manipulator_coordinates": {
+                  "unit": "micrometer",
+                  "x": "6444.0",
+                  "y": "7644.0",
+                  "z": "9374.0"
+               },
+               "module_angle": "35.0",
+               "notes": null,
+               "other_targeted_structure": null,
+               "primary_targeted_structure": {
+                  "acronym": "ACB",
+                  "atlas": "CCFv3",
+                  "id": "56",
+                  "name": "Nucleus accumbens"
+               },
+               "rotation_angle": "0",
+               "surface_z": null,
+               "surface_z_unit": "micrometer",
+               "targeted_ccf_coordinates": []
+            },
+            {
+               "anatomical_coordinates": null,
+               "anatomical_reference": null,
+               "angle_unit": "degrees",
+               "arc_angle": "10.0",
+               "assembly_name": "Probe B assembly",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "dye": "DiI",
+               "implant_hole_number": 3,
+               "manipulator_coordinates": {
+                  "unit": "micrometer",
+                  "x": "8583.0",
+                  "y": "11084.0",
+                  "z": "5694.0"
+               },
+               "module_angle": "-35.0",
+               "notes": null,
+               "other_targeted_structure": null,
+               "primary_targeted_structure": {
+                  "acronym": "PL",
+                  "atlas": "CCFv3",
+                  "id": "972",
+                  "name": "Prelimbic area"
+               },
+               "rotation_angle": "135",
+               "surface_z": null,
+               "surface_z_unit": "micrometer",
+               "targeted_ccf_coordinates": []
+            }
+         ],
+         "fiber_connections": [],
+         "fiber_modules": [],
+         "light_sources": [],
+         "manipulator_modules": [],
+         "mri_scans": [],
+         "notes": null,
+         "ophys_fovs": [],
+         "slap_fovs": [],
+         "software": [],
+         "stack_parameters": null,
+         "stick_microscopes": [
+            {
+               "angle_unit": "degrees",
+               "arc_angle": "-180",
+               "assembly_name": "Probe camera 1",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "module_angle": "-180",
+               "notes": "did not record angles, did not calibrate.",
+               "rotation_angle": "0"
+            },
+            {
+               "angle_unit": "degrees",
+               "arc_angle": "-180",
+               "assembly_name": "Probe camera 2",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "module_angle": "-180",
+               "notes": "Did not record angles, did not calibrate",
+               "rotation_angle": "0"
+            },
+            {
+               "angle_unit": "degrees",
+               "arc_angle": "-180",
+               "assembly_name": "Probe camera 3",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "module_angle": "-180",
+               "notes": "Did not record angles, did not calibrate",
+               "rotation_angle": "0"
+            }
+         ],
+         "stream_end_time": "2025-09-26T14:28:50-07:00",
+         "stream_modalities": [
+            {
+               "abbreviation": "ecephys",
+               "name": "Extracellular electrophysiology"
+            }
+         ],
+         "stream_start_time": "2025-09-26T14:27:34-07:00"
+      },
+      {
+         "camera_names": [],
+         "daq_names": [
+            "Harp Behavior",
+            "Neuropixels Basestation",
+            "Harp Sound Card",
+            "Lickety split left",
+            "Lickety split right"
+         ],
+         "detectors": [],
+         "ephys_modules": [
+            {
+               "anatomical_coordinates": null,
+               "anatomical_reference": null,
+               "angle_unit": "degrees",
+               "arc_angle": "10.0",
+               "assembly_name": "Probe A assembly",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "dye": "DiI",
+               "implant_hole_number": 7,
+               "manipulator_coordinates": {
+                  "unit": "micrometer",
+                  "x": "6444.0",
+                  "y": "7644.0",
+                  "z": "9374.0"
+               },
+               "module_angle": "35.0",
+               "notes": null,
+               "other_targeted_structure": null,
+               "primary_targeted_structure": {
+                  "acronym": "ACB",
+                  "atlas": "CCFv3",
+                  "id": "56",
+                  "name": "Nucleus accumbens"
+               },
+               "rotation_angle": "0",
+               "surface_z": null,
+               "surface_z_unit": "micrometer",
+               "targeted_ccf_coordinates": []
+            },
+            {
+               "anatomical_coordinates": null,
+               "anatomical_reference": null,
+               "angle_unit": "degrees",
+               "arc_angle": "10.0",
+               "assembly_name": "Probe B assembly",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "dye": "DiI",
+               "implant_hole_number": 3,
+               "manipulator_coordinates": {
+                  "unit": "micrometer",
+                  "x": "8583.0",
+                  "y": "11084.0",
+                  "z": "5694.0"
+               },
+               "module_angle": "-35.0",
+               "notes": null,
+               "other_targeted_structure": null,
+               "primary_targeted_structure": {
+                  "acronym": "PL",
+                  "atlas": "CCFv3",
+                  "id": "972",
+                  "name": "Prelimbic area"
+               },
+               "rotation_angle": "135",
+               "surface_z": null,
+               "surface_z_unit": "micrometer",
+               "targeted_ccf_coordinates": []
+            }
+         ],
+         "fiber_connections": [],
+         "fiber_modules": [],
+         "light_sources": [],
+         "manipulator_modules": [],
+         "mri_scans": [],
+         "notes": null,
+         "ophys_fovs": [],
+         "slap_fovs": [],
+         "software": [],
+         "stack_parameters": null,
+         "stick_microscopes": [
+            {
+               "angle_unit": "degrees",
+               "arc_angle": "-180",
+               "assembly_name": "Probe camera 1",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "module_angle": "-180",
+               "notes": "did not record angles, did not calibrate.",
+               "rotation_angle": "0"
+            },
+            {
+               "angle_unit": "degrees",
+               "arc_angle": "-180",
+               "assembly_name": "Probe camera 2",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "module_angle": "-180",
+               "notes": "Did not record angles, did not calibrate",
+               "rotation_angle": "0"
+            },
+            {
+               "angle_unit": "degrees",
+               "arc_angle": "-180",
+               "assembly_name": "Probe camera 3",
+               "calibration_date": null,
+               "coordinate_transform": null,
+               "module_angle": "-180",
+               "notes": "Did not record angles, did not calibrate",
+               "rotation_angle": "0"
+            }
+         ],
+         "stream_end_time": "2025-09-26T14:31:17-07:00",
+         "stream_modalities": [
+            {
+               "abbreviation": "ecephys",
+               "name": "Extracellular electrophysiology"
+            }
+         ],
+         "stream_start_time": "2025-09-26T14:29:05-07:00"
+      }
+   ],
+   "describedBy": "https://raw.githubusercontent.com/AllenNeuralDynamics/aind-data-schema/main/src/aind_data_schema/core/session.py",
+   "experimenter_full_name": [
+      "John Doe"
+   ],
+   "headframe_registration": null,
+   "iacuc_protocol": "2414",
+   "maintenance": [],
+   "mouse_platform_name": "Running Wheel",
+   "notes": "nan",
+   "protocol_id": [],
+   "reward_consumed_total": "470.0",
+   "reward_consumed_unit": "milliliter",
+   "reward_delivery": null,
+   "rig_id": "323_EPHYS1_20250922",
+   "schema_version": "1.1.1",
+   "session_end_time": "2025-09-26T14:31:17-07:00",
+   "session_start_time": "2025-09-26T12:57:44-07:00",
+   "session_type": "Optotagging and dynamic foraging",
+   "stimulus_epochs": [
+      {
+         "light_source_config": [
+            {
+               "device_type": "Laser",
+               "excitation_power": null,
+               "excitation_power_unit": "milliwatt",
+               "name": "Oxxius Red Laser 1",
+               "wavelength": 638,
+               "wavelength_unit": "nanometer"
+            },
+            {
+               "device_type": "Laser",
+               "excitation_power": null,
+               "excitation_power_unit": "milliwatt",
+               "name": "Oxxius Blue Laser 1",
+               "wavelength": 473,
+               "wavelength_unit": "nanometer"
+            },
+            {
+               "device_type": "Laser",
+               "excitation_power": null,
+               "excitation_power_unit": "milliwatt",
+               "name": "Oxxius Red Laser 2",
+               "wavelength": 638,
+               "wavelength_unit": "nanometer"
+            },
+            {
+               "device_type": "Laser",
+               "excitation_power": null,
+               "excitation_power_unit": "milliwatt",
+               "name": "Oxxius Blue Laser 2",
+               "wavelength": 473,
+               "wavelength_unit": "nanometer"
+            }
+         ],
+         "notes": null,
+         "output_parameters": {},
+         "reward_consumed_during_epoch": null,
+         "reward_consumed_unit": "microliter",
+         "script": {
+            "name": "np-opto-stim",
+            "parameters": {},
+            "url": "https://github.com/AllenNeuralDynamics/np-opto-stim",
+            "version": "commit: 2d45704cfc82608fa34f667a9f3f0ab29fc9f408"
+         },
+         "session_number": null,
+         "software": [
+            {
+               "name": "Python",
+               "parameters": {},
+               "url": null,
+               "version": "3.7"
+            }
+         ],
+         "speaker_config": null,
+         "stimulus_device_names": [
+            "Oxxius Red Laser 1",
+            "Oxxius Blue Laser 1",
+            "Oxxius Red Laser 2",
+            "Oxxius Blue Laser 2"
+         ],
+         "stimulus_end_time": "2025-09-26T14:25:18-07:00",
+         "stimulus_modalities": [
+            "Optogenetics"
+         ],
+         "stimulus_name": "Laser pulses for optotagging",
+         "stimulus_parameters": [
+            {
+               "baseline_duration": "600",
+               "baseline_duration_unit": "second",
+               "fixed_pulse_train_interval": false,
+               "notes": null,
+               "number_pulse_trains": [
+                  5
+               ],
+               "other_parameters": {},
+               "pulse_frequency": [
+                  "20.0"
+               ],
+               "pulse_frequency_unit": "hertz",
+               "pulse_shape": "Ramp",
+               "pulse_train_duration": [
+                  "0.25"
+               ],
+               "pulse_train_duration_unit": "second",
+               "pulse_train_interval": null,
+               "pulse_train_interval_unit": "second",
+               "pulse_width": [
+                  10
+               ],
+               "pulse_width_unit": "millisecond",
+               "stimulus_name": "Laser pulses",
+               "stimulus_type": "Opto Stimulation"
+            }
+         ],
+         "stimulus_start_time": "2025-09-26T14:17:23-07:00",
+         "trials_finished": null,
+         "trials_rewarded": null,
+         "trials_total": null
+      },
+      {
+         "light_source_config": [],
+         "notes": "The duration of go cue is 100 ms. The frequency is 7500 Hz. Amplitude is 60dB. The total reward consumed in the session is 470.0 microliters. The total reward including consumed in the session and supplementary water is 1.435 milliliters.",
+         "output_parameters": {
+            "meta": {
+               "box": "323_EPHYS1",
+               "session_run_time_in_min": 69
+            },
+            "performance": {
+               "foraging_efficiency": 0.49738496571948254,
+               "foraging_efficiency_with_actual_random_seed": 0.5830258302583026
+            }
+         },
+         "reward_consumed_during_epoch": "470.0",
+         "reward_consumed_unit": "microliter",
+         "script": {
+            "name": "dynamic-foraging-task",
+            "parameters": {
+               "BlockBeta": "20",
+               "BlockMax": "35",
+               "BlockMin": "20",
+               "DelayBeta": "0.0",
+               "DelayMax": "1.0",
+               "DelayMin": "1.0",
+               "ITIBeta": "3.0",
+               "ITIMax": "30.0",
+               "ITIMin": "1.0",
+               "LeftValue_volume": "3.00",
+               "RightValue_volume": "3.00",
+               "Task": "Uncoupled Baiting",
+               "curriculum_in_use": "off curriculum",
+               "reward_probability": "0.1, 0.4, 0.7",
+               "stage_in_use": "unknown training stage"
+            },
+            "url": "https://github.com/AllenNeuralDynamics/dynamic-foraging-task.git",
+            "version": "behavior branch:main   commit ID:3ffdd641a2b8b1468a0addb67a74b1bf6600558f    version:1.6.55; metadata branch: main   commit ID:3ffdd641a2b8b1468a0addb67a74b1bf6600558f   version:1.6.55"
+         },
+         "session_number": null,
+         "software": [
+            {
+               "name": "Bonsai",
+               "parameters": {},
+               "url": null,
+               "version": "2.8.0"
+            }
+         ],
+         "speaker_config": {
+            "name": "Go cue speaker",
+            "volume": "60",
+            "volume_unit": "decibels"
+         },
+         "stimulus_device_names": [
+            "Go cue speaker"
+         ],
+         "stimulus_end_time": "2025-09-26T14:25:24.424083-07:00",
+         "stimulus_modalities": [
+            "Auditory"
+         ],
+         "stimulus_name": "Auditory go cue for foraging task",
+         "stimulus_parameters": [
+            {
+               "amplitude_modulation_frequency": null,
+               "bandpass_filter_type": null,
+               "bandpass_high_frequency": null,
+               "bandpass_low_frequency": null,
+               "bandpass_order": null,
+               "frequency_unit": "hertz",
+               "notes": null,
+               "sample_frequency": "7500",
+               "stimulus_name": "Auditory go cue",
+               "stimulus_type": "Auditory Stimulation"
+            }
+         ],
+         "stimulus_start_time": "2025-09-26T12:57:51.312535-07:00",
+         "trials_finished": 345,
+         "trials_rewarded": 158,
+         "trials_total": 450
+      }
+   ],
+   "subject_id": "800779",
+   "weight_unit": "gram"
+}
