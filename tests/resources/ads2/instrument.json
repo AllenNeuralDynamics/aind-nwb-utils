@@ -1,0 +1,876 @@
+{
+   "object_type": "Instrument",
+   "describedBy": "https://raw.githubusercontent.com/AllenNeuralDynamics/aind-data-schema/main/src/aind_data_schema/core/instrument.py",
+   "schema_version": "2.0.40",
+   "location": "323",
+   "instrument_id": "EPHYS1",
+   "modification_date": "2023-10-03",
+   "modalities": [
+      {
+         "name": "Extracellular electrophysiology",
+         "abbreviation": "ecephys"
+      }
+   ],
+   "calibrations": [
+      {
+         "object_type": "Calibration",
+         "device_name": "Red Laser",
+         "calibration_date": "2023-10-02T10:22:13Z",
+         "description": "Laser power calibration",
+         "input": [
+            10.0,
+            20.0,
+            40.0
+         ],
+         "input_unit": "percent",
+         "repeats": null,
+         "output": [
+            1.0,
+            3.0,
+            6.0
+         ],
+         "output_unit": "milliwatt",
+         "fit": null,
+         "notes": null
+      },
+      {
+         "object_type": "Calibration",
+         "device_name": "Blue Laser",
+         "calibration_date": "2023-10-02T10:22:13Z",
+         "description": "Laser power calibration",
+         "input": [
+            10.0,
+            20.0,
+            40.0
+         ],
+         "input_unit": "percent",
+         "repeats": null,
+         "output": [
+            1.0,
+            2.0,
+            7.0
+         ],
+         "output_unit": "milliwatt",
+         "fit": null,
+         "notes": null
+      }
+   ],
+   "coordinate_system": {
+      "object_type": "Coordinate system",
+      "name": "BREGMA_ARI",
+      "origin": "Bregma",
+      "axes": [
+         {
+            "object_type": "Axis",
+            "name": "AP",
+            "direction": "Posterior_to_anterior"
+         },
+         {
+            "object_type": "Axis",
+            "name": "ML",
+            "direction": "Left_to_right"
+         },
+         {
+            "object_type": "Axis",
+            "name": "SI",
+            "direction": "Superior_to_inferior"
+         }
+      ],
+      "axis_unit": "millimeter"
+   },
+   "temperature_control": null,
+   "notes": null,
+   "connections": [
+      {
+         "object_type": "Connection",
+         "source_device": "Harp Behavior",
+         "source_port": "DO0",
+         "target_device": "Face Camera",
+         "target_port": null,
+         "send_and_receive": false
+      },
+      {
+         "object_type": "Connection",
+         "source_device": "Harp Behavior",
+         "source_port": "DO1",
+         "target_device": "Body Camera",
+         "target_port": null,
+         "send_and_receive": false
+      },
+      {
+         "object_type": "Connection",
+         "source_device": "Running Wheel",
+         "source_port": null,
+         "target_device": "Harp Behavior",
+         "target_port": "AI0",
+         "send_and_receive": false
+      },
+      {
+         "object_type": "Connection",
+         "source_device": "Harp Behavior",
+         "source_port": null,
+         "target_device": "W10DT72941",
+         "target_port": null,
+         "send_and_receive": false
+      },
+      {
+         "object_type": "Connection",
+         "source_device": "Face Camera",
+         "source_port": null,
+         "target_device": "W10DT72941",
+         "target_port": null,
+         "send_and_receive": false
+      },
+      {
+         "object_type": "Connection",
+         "source_device": "Body Camera",
+         "source_port": null,
+         "target_device": "W10DT72941",
+         "target_port": null,
+         "send_and_receive": false
+      },
+      {
+         "object_type": "Connection",
+         "source_device": "Basestation Slot 3",
+         "source_port": null,
+         "target_device": "W10DT72942",
+         "target_port": null,
+         "send_and_receive": false
+      },
+      {
+         "object_type": "Connection",
+         "source_device": "stick microscope 1",
+         "source_port": null,
+         "target_device": "W10DT72942",
+         "target_port": null,
+         "send_and_receive": false
+      },
+      {
+         "object_type": "Connection",
+         "source_device": "stick microscope 2",
+         "source_port": null,
+         "target_device": "W10DT72942",
+         "target_port": null,
+         "send_and_receive": false
+      },
+      {
+         "object_type": "Connection",
+         "source_device": "stick microscope 3",
+         "source_port": null,
+         "target_device": "W10DT72942",
+         "target_port": null,
+         "send_and_receive": false
+      },
+      {
+         "object_type": "Connection",
+         "source_device": "stick microscope 4",
+         "source_port": null,
+         "target_device": "W10DT72942",
+         "target_port": null,
+         "send_and_receive": false
+      }
+   ],
+   "components": [
+      {
+         "object_type": "Ephys assembly",
+         "name": "Ephys_assemblyA",
+         "manipulator": {
+            "object_type": "Manipulator",
+            "name": "Manipulator 1",
+            "serial_number": "SN2938",
+            "manufacturer": {
+               "name": "New Scale Technologies",
+               "abbreviation": null,
+               "registry": null,
+               "registry_identifier": null
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null
+         },
+         "probes": [
+            {
+               "object_type": "Ephys probe",
+               "name": "Probe A",
+               "serial_number": "9291019",
+               "manufacturer": null,
+               "model": null,
+               "additional_settings": null,
+               "notes": null,
+               "probe_model": "Neuropixels 1.0",
+               "headstage": null
+            }
+         ]
+      },
+      {
+         "object_type": "Ephys assembly",
+         "name": "Ephys_assemblyB",
+         "manipulator": {
+            "object_type": "Manipulator",
+            "name": "Manipulator B",
+            "serial_number": "SN2939",
+            "manufacturer": {
+               "name": "New Scale Technologies",
+               "abbreviation": null,
+               "registry": null,
+               "registry_identifier": null
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null
+         },
+         "probes": [
+            {
+               "object_type": "Ephys probe",
+               "name": "Probe B",
+               "serial_number": "9291020",
+               "manufacturer": null,
+               "model": null,
+               "additional_settings": null,
+               "notes": null,
+               "probe_model": "Neuropixels 1.0",
+               "headstage": null
+            }
+         ]
+      },
+      {
+         "object_type": "Camera assembly",
+         "relative_position": [
+            "Left"
+         ],
+         "coordinate_system": null,
+         "transform": null,
+         "name": "Face Camera Assembly",
+         "target": "Face",
+         "camera": {
+            "object_type": "Camera",
+            "name": "Face Camera",
+            "serial_number": null,
+            "manufacturer": {
+               "name": "Teledyne FLIR",
+               "abbreviation": "FLIR",
+               "registry": "Research Organization Registry (ROR)",
+               "registry_identifier": "01j1gwp17"
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null,
+            "detector_type": "Camera",
+            "data_interface": "USB",
+            "cooling": "No cooling",
+            "frame_rate": "50",
+            "frame_rate_unit": "hertz",
+            "immersion": null,
+            "chroma": "Monochrome",
+            "sensor_width": 1080,
+            "sensor_height": 570,
+            "size_unit": "pixel",
+            "sensor_format": "1/2.9",
+            "sensor_format_unit": "inches",
+            "bit_depth": null,
+            "bin_mode": "No binning",
+            "bin_width": null,
+            "bin_height": null,
+            "bin_unit": "pixel",
+            "gain": null,
+            "crop_offset_x": null,
+            "crop_offset_y": null,
+            "crop_width": null,
+            "crop_height": null,
+            "crop_unit": "pixel",
+            "recording_software": null,
+            "driver": null,
+            "driver_version": null
+         },
+         "lens": {
+            "object_type": "Lens",
+            "name": "Camera lens",
+            "serial_number": null,
+            "manufacturer": {
+               "name": "Edmund Optics",
+               "abbreviation": null,
+               "registry": "Research Organization Registry (ROR)",
+               "registry_identifier": "01j1gwp17"
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null
+         },
+         "filter": {
+            "object_type": "Filter",
+            "name": "LP filter",
+            "serial_number": null,
+            "manufacturer": {
+               "name": "Thorlabs",
+               "abbreviation": null,
+               "registry": "Research Organization Registry (ROR)",
+               "registry_identifier": "04gsnvb07"
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null,
+            "filter_type": "Long pass",
+            "cut_off_wavelength": null,
+            "cut_on_wavelength": 850,
+            "center_wavelength": null,
+            "wavelength_unit": "nanometer"
+         }
+      },
+      {
+         "object_type": "Camera assembly",
+         "relative_position": [
+            "Superior"
+         ],
+         "coordinate_system": null,
+         "transform": null,
+         "name": "Body Camera Assembly",
+         "target": "Body",
+         "camera": {
+            "object_type": "Camera",
+            "name": "Body Camera",
+            "serial_number": null,
+            "manufacturer": {
+               "name": "Teledyne FLIR",
+               "abbreviation": "FLIR",
+               "registry": "Research Organization Registry (ROR)",
+               "registry_identifier": "01j1gwp17"
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null,
+            "detector_type": "Camera",
+            "data_interface": "USB",
+            "cooling": "No cooling",
+            "frame_rate": "50",
+            "frame_rate_unit": "hertz",
+            "immersion": null,
+            "chroma": "Monochrome",
+            "sensor_width": 1080,
+            "sensor_height": 570,
+            "size_unit": "pixel",
+            "sensor_format": "1/2.9",
+            "sensor_format_unit": "inches",
+            "bit_depth": null,
+            "bin_mode": "No binning",
+            "bin_width": null,
+            "bin_height": null,
+            "bin_unit": "pixel",
+            "gain": null,
+            "crop_offset_x": null,
+            "crop_offset_y": null,
+            "crop_width": null,
+            "crop_height": null,
+            "crop_unit": "pixel",
+            "recording_software": null,
+            "driver": null,
+            "driver_version": null
+         },
+         "lens": {
+            "object_type": "Lens",
+            "name": "Camera lens",
+            "serial_number": null,
+            "manufacturer": {
+               "name": "Edmund Optics",
+               "abbreviation": null,
+               "registry": "Research Organization Registry (ROR)",
+               "registry_identifier": "01j1gwp17"
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null
+         },
+         "filter": {
+            "object_type": "Filter",
+            "name": "LP filter",
+            "serial_number": null,
+            "manufacturer": {
+               "name": "Thorlabs",
+               "abbreviation": null,
+               "registry": "Research Organization Registry (ROR)",
+               "registry_identifier": "04gsnvb07"
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null,
+            "filter_type": "Long pass",
+            "cut_off_wavelength": null,
+            "cut_on_wavelength": 850,
+            "center_wavelength": null,
+            "wavelength_unit": "nanometer"
+         }
+      },
+      {
+         "object_type": "Laser assembly",
+         "name": "Laser_assemblyA",
+         "manipulator": {
+            "object_type": "Manipulator",
+            "name": "Manipulator A",
+            "serial_number": "SN2937",
+            "manufacturer": {
+               "name": "New Scale Technologies",
+               "abbreviation": null,
+               "registry": null,
+               "registry_identifier": null
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null
+         },
+         "lasers": [
+            {
+               "object_type": "Laser",
+               "name": "Red Laser",
+               "serial_number": null,
+               "manufacturer": {
+                  "name": "Oxxius",
+                  "abbreviation": null,
+                  "registry": null,
+                  "registry_identifier": null
+               },
+               "model": null,
+               "additional_settings": null,
+               "notes": null,
+               "wavelength": 473,
+               "wavelength_unit": "nanometer",
+               "coupling": null,
+               "coupling_efficiency": null,
+               "coupling_efficiency_unit": "percent"
+            },
+            {
+               "object_type": "Laser",
+               "name": "Blue Laser",
+               "serial_number": null,
+               "manufacturer": {
+                  "name": "Oxxius",
+                  "abbreviation": null,
+                  "registry": null,
+                  "registry_identifier": null
+               },
+               "model": null,
+               "additional_settings": null,
+               "notes": null,
+               "wavelength": 638,
+               "wavelength_unit": "nanometer",
+               "coupling": null,
+               "coupling_efficiency": null,
+               "coupling_efficiency_unit": "percent"
+            }
+         ],
+         "collimator": {
+            "object_type": "Device",
+            "name": "Collimator A",
+            "serial_number": null,
+            "manufacturer": null,
+            "model": null,
+            "additional_settings": null,
+            "notes": null
+         },
+         "fiber": {
+            "object_type": "Fiber patch cord",
+            "name": "Bundle Branching Fiber-optic Patch Cord",
+            "serial_number": null,
+            "manufacturer": {
+               "name": "Doric",
+               "abbreviation": null,
+               "registry": "Research Organization Registry (ROR)",
+               "registry_identifier": "059n53q30"
+            },
+            "model": "BBP(4)_200/220/900-0.37_Custom_FCM-4xMF1.25",
+            "additional_settings": null,
+            "notes": null,
+            "core_diameter": "200",
+            "numerical_aperture": "0.37",
+            "photobleaching_date": null
+         }
+      },
+      {
+         "object_type": "Neuropixels basestation",
+         "name": "Basestation Slot 3",
+         "serial_number": null,
+         "manufacturer": {
+            "name": "Interuniversity Microelectronics Center",
+            "abbreviation": "IMEC",
+            "registry": "Research Organization Registry (ROR)",
+            "registry_identifier": "02kcbn207"
+         },
+         "model": null,
+         "additional_settings": null,
+         "notes": null,
+         "data_interface": "PXI",
+         "channels": [],
+         "firmware_version": null,
+         "hardware_version": null,
+         "basestation_firmware_version": "2.019",
+         "bsc_firmware_version": "2.199",
+         "slot": 3,
+         "ports": [
+            {
+               "object_type": "Probe port",
+               "index": 1,
+               "probes": [
+                  "Probe A"
+               ]
+            },
+            {
+               "object_type": "Probe port",
+               "index": 2,
+               "probes": [
+                  "Probe B"
+               ]
+            }
+         ]
+      },
+      {
+         "object_type": "Harp device",
+         "name": "Harp Behavior",
+         "serial_number": null,
+         "manufacturer": {
+            "name": "Open Ephys Production Site",
+            "abbreviation": "OEPS",
+            "registry": "Research Organization Registry (ROR)",
+            "registry_identifier": "007rkz355"
+         },
+         "model": null,
+         "additional_settings": null,
+         "notes": null,
+         "data_interface": "USB",
+         "channels": [
+            {
+               "object_type": "DAQ channel",
+               "channel_name": "DO0",
+               "channel_type": "Digital Output",
+               "port": null,
+               "channel_index": null,
+               "sample_rate": null,
+               "sample_rate_unit": null,
+               "event_based_sampling": null
+            },
+            {
+               "object_type": "DAQ channel",
+               "channel_name": "DO1",
+               "channel_type": "Digital Output",
+               "port": null,
+               "channel_index": null,
+               "sample_rate": null,
+               "sample_rate_unit": null,
+               "event_based_sampling": null
+            },
+            {
+               "object_type": "DAQ channel",
+               "channel_name": "AI0",
+               "channel_type": "Analog Input",
+               "port": null,
+               "channel_index": null,
+               "sample_rate": null,
+               "sample_rate_unit": null,
+               "event_based_sampling": null
+            }
+         ],
+         "firmware_version": null,
+         "hardware_version": null,
+         "harp_device_type": {
+            "whoami": 1216,
+            "name": "Behavior"
+         },
+         "core_version": "2.1",
+         "tag_version": null,
+         "is_clock_generator": false
+      },
+      {
+         "object_type": "Camera assembly",
+         "relative_position": [
+            "Superior"
+         ],
+         "coordinate_system": null,
+         "transform": null,
+         "name": "Stick_assembly_1",
+         "target": "Brain",
+         "camera": {
+            "object_type": "Camera",
+            "name": "stick microscope 1",
+            "serial_number": null,
+            "manufacturer": {
+               "name": "Teledyne FLIR",
+               "abbreviation": "FLIR",
+               "registry": "Research Organization Registry (ROR)",
+               "registry_identifier": "01j1gwp17"
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null,
+            "detector_type": "Camera",
+            "data_interface": "USB",
+            "cooling": "No cooling",
+            "frame_rate": "50",
+            "frame_rate_unit": "hertz",
+            "immersion": null,
+            "chroma": "Color",
+            "sensor_width": 1080,
+            "sensor_height": 570,
+            "size_unit": "pixel",
+            "sensor_format": "1/2.9",
+            "sensor_format_unit": "inches",
+            "bit_depth": null,
+            "bin_mode": "No binning",
+            "bin_width": null,
+            "bin_height": null,
+            "bin_unit": "pixel",
+            "gain": null,
+            "crop_offset_x": null,
+            "crop_offset_y": null,
+            "crop_width": null,
+            "crop_height": null,
+            "crop_unit": "pixel",
+            "recording_software": null,
+            "driver": null,
+            "driver_version": null
+         },
+         "lens": {
+            "object_type": "Lens",
+            "name": "Probe lens",
+            "serial_number": null,
+            "manufacturer": {
+               "name": "Edmund Optics",
+               "abbreviation": null,
+               "registry": "Research Organization Registry (ROR)",
+               "registry_identifier": "01j1gwp17"
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null
+         },
+         "filter": null
+      },
+      {
+         "object_type": "Camera assembly",
+         "relative_position": [
+            "Superior"
+         ],
+         "coordinate_system": null,
+         "transform": null,
+         "name": "Stick_assembly_2",
+         "target": "Brain",
+         "camera": {
+            "object_type": "Camera",
+            "name": "stick microscope 2",
+            "serial_number": null,
+            "manufacturer": {
+               "name": "Teledyne FLIR",
+               "abbreviation": "FLIR",
+               "registry": "Research Organization Registry (ROR)",
+               "registry_identifier": "01j1gwp17"
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null,
+            "detector_type": "Camera",
+            "data_interface": "USB",
+            "cooling": "No cooling",
+            "frame_rate": "50",
+            "frame_rate_unit": "hertz",
+            "immersion": null,
+            "chroma": "Color",
+            "sensor_width": 1080,
+            "sensor_height": 570,
+            "size_unit": "pixel",
+            "sensor_format": "1/2.9",
+            "sensor_format_unit": "inches",
+            "bit_depth": null,
+            "bin_mode": "No binning",
+            "bin_width": null,
+            "bin_height": null,
+            "bin_unit": "pixel",
+            "gain": null,
+            "crop_offset_x": null,
+            "crop_offset_y": null,
+            "crop_width": null,
+            "crop_height": null,
+            "crop_unit": "pixel",
+            "recording_software": null,
+            "driver": null,
+            "driver_version": null
+         },
+         "lens": {
+            "object_type": "Lens",
+            "name": "Probe lens",
+            "serial_number": null,
+            "manufacturer": {
+               "name": "Edmund Optics",
+               "abbreviation": null,
+               "registry": "Research Organization Registry (ROR)",
+               "registry_identifier": "01j1gwp17"
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null
+         },
+         "filter": null
+      },
+      {
+         "object_type": "Camera assembly",
+         "relative_position": [
+            "Superior"
+         ],
+         "coordinate_system": null,
+         "transform": null,
+         "name": "Stick_assembly_3",
+         "target": "Brain",
+         "camera": {
+            "object_type": "Camera",
+            "name": "stick microscope 3",
+            "serial_number": null,
+            "manufacturer": {
+               "name": "Teledyne FLIR",
+               "abbreviation": "FLIR",
+               "registry": "Research Organization Registry (ROR)",
+               "registry_identifier": "01j1gwp17"
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null,
+            "detector_type": "Camera",
+            "data_interface": "USB",
+            "cooling": "No cooling",
+            "frame_rate": "50",
+            "frame_rate_unit": "hertz",
+            "immersion": null,
+            "chroma": "Color",
+            "sensor_width": 1080,
+            "sensor_height": 570,
+            "size_unit": "pixel",
+            "sensor_format": "1/2.9",
+            "sensor_format_unit": "inches",
+            "bit_depth": null,
+            "bin_mode": "No binning",
+            "bin_width": null,
+            "bin_height": null,
+            "bin_unit": "pixel",
+            "gain": null,
+            "crop_offset_x": null,
+            "crop_offset_y": null,
+            "crop_width": null,
+            "crop_height": null,
+            "crop_unit": "pixel",
+            "recording_software": null,
+            "driver": null,
+            "driver_version": null
+         },
+         "lens": {
+            "object_type": "Lens",
+            "name": "Probe lens",
+            "serial_number": null,
+            "manufacturer": {
+               "name": "Edmund Optics",
+               "abbreviation": null,
+               "registry": "Research Organization Registry (ROR)",
+               "registry_identifier": "01j1gwp17"
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null
+         },
+         "filter": null
+      },
+      {
+         "object_type": "Camera assembly",
+         "relative_position": [
+            "Superior"
+         ],
+         "coordinate_system": null,
+         "transform": null,
+         "name": "Stick_assembly_4",
+         "target": "Brain",
+         "camera": {
+            "object_type": "Camera",
+            "name": "stick microscope 4",
+            "serial_number": null,
+            "manufacturer": {
+               "name": "Teledyne FLIR",
+               "abbreviation": "FLIR",
+               "registry": "Research Organization Registry (ROR)",
+               "registry_identifier": "01j1gwp17"
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null,
+            "detector_type": "Camera",
+            "data_interface": "USB",
+            "cooling": "No cooling",
+            "frame_rate": "50",
+            "frame_rate_unit": "hertz",
+            "immersion": null,
+            "chroma": "Color",
+            "sensor_width": 1080,
+            "sensor_height": 570,
+            "size_unit": "pixel",
+            "sensor_format": "1/2.9",
+            "sensor_format_unit": "inches",
+            "bit_depth": null,
+            "bin_mode": "No binning",
+            "bin_width": null,
+            "bin_height": null,
+            "bin_unit": "pixel",
+            "gain": null,
+            "crop_offset_x": null,
+            "crop_offset_y": null,
+            "crop_width": null,
+            "crop_height": null,
+            "crop_unit": "pixel",
+            "recording_software": null,
+            "driver": null,
+            "driver_version": null
+         },
+         "lens": {
+            "object_type": "Lens",
+            "name": "Probe lens",
+            "serial_number": null,
+            "manufacturer": {
+               "name": "Edmund Optics",
+               "abbreviation": null,
+               "registry": "Research Organization Registry (ROR)",
+               "registry_identifier": "01j1gwp17"
+            },
+            "model": null,
+            "additional_settings": null,
+            "notes": null
+         },
+         "filter": null
+      },
+      {
+         "object_type": "Disc",
+         "name": "Running Wheel",
+         "serial_number": null,
+         "manufacturer": null,
+         "model": null,
+         "additional_settings": null,
+         "notes": null,
+         "radius": "15",
+         "radius_unit": "centimeter",
+         "output": null,
+         "encoder": null,
+         "decoder": null,
+         "encoder_firmware": null,
+         "surface_material": null
+      },
+      {
+         "object_type": "Computer",
+         "name": "W10DT72941",
+         "serial_number": null,
+         "manufacturer": null,
+         "model": null,
+         "additional_settings": null,
+         "notes": null,
+         "operating_system": null
+      },
+      {
+         "object_type": "Computer",
+         "name": "W10DT72942",
+         "serial_number": null,
+         "manufacturer": null,
+         "model": null,
+         "additional_settings": null,
+         "notes": null,
+         "operating_system": null
+      }
+   ]
+}

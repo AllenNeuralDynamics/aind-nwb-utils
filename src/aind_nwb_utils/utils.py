@@ -1,14 +1,19 @@
 """Utility functions for working with NWB files."""
 
 import datetime
+import json
+import uuid
+import warnings
+from datetime import datetime as dt
 from pathlib import Path
-from typing import Union, Any
+from typing import Any, Union
 
 import numpy as np
 import pynwb
 from pynwb import TimeSeries
 from pynwb.base import VectorData
 from hdmf_zarr import NWBZarrIO
+from packaging.version import parse
 from pynwb import NWBHDF5IO
 from aind_nwb_utils.nwb_io import determine_io
 
