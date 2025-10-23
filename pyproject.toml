@@ -18,6 +18,7 @@ dynamic = ["version"]
 
 dependencies = [
     'pynwb',
+    'ndx-events',
     'hdmf-zarr',
     'xarray'
 ]
