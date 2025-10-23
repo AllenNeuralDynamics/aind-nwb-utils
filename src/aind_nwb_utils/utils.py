@@ -148,6 +148,8 @@ def add_data(
         main_io.add_analysis(obj)
     elif field == "intervals":
         main_io.add_time_intervals(obj)
+    elif field == "events":
+        main_io.add_events_table(obj)
     else:
         raise ValueError(f"Unknown attribute type: {field}")
 
