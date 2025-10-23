@@ -237,6 +237,7 @@ def combine_nwb_file(
     print(main_nwb_fp)
     print(sub_nwb_fp)
     print(f"Saving merged file to: {output_path}")
+    import pdb
 
     with main_io_class(main_nwb_fp, "r") as main_io:
         main_nwb = main_io.read()
@@ -246,7 +247,11 @@ def combine_nwb_file(
             main_nwb = get_nwb_attribute(main_nwb, sub_nwb)
 
             with save_io(output_path, "w") as out_io:
-                out_io.export(src_io=main_io, write_args=dict(link_data=False))
+                try:
+                    out_io.export(src_io=main_io, write_args=dict(link_data=False))
+                except Exception as e:
+                    pdb.set_trace()
+                    print(f"Error occurred while saving merged file: {e}")
 
     return output_path
 
