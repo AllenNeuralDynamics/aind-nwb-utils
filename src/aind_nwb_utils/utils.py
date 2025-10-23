@@ -204,6 +204,35 @@ def get_nwb_attribute(
 
     return main_io
 
+def print_nwb_dataset_info(nwb_file):
+    """
+    Recursively prints all datasets in NWB (processing, acquisition, stimulus, intervals)
+    with their name, shape, and dtype.
+    """
+    def recurse_group(group, prefix=""):
+        for name, obj in group.items():
+            full_name = f"{prefix}/{name}" if prefix else name
+            try:
+                # TimeSeries, VectorData, etc. have .data attribute
+                data = getattr(obj, "data", None)
+                if data is not None:
+                    try:
+                        print(f"{full_name} -> shape: {data.shape}, dtype: {data.dtype}")
+                    except Exception as e:
+                        print(f"{full_name} -> cannot read data: {e}")
+                # Recurse if it has sub-elements
+                if hasattr(obj, "data_interfaces"):
+                    recurse_group(obj.data_interfaces, prefix=full_name)
+                if hasattr(obj, "children") and obj.children:
+                    recurse_group(obj.children, prefix=full_name)
+            except Exception as e:
+                print(f"{full_name} -> error: {e}")
+
+    # Top-level sections
+    sections = [nwb_file.acquisition, nwb_file.stimulus, nwb_file.processing, nwb_file.intervals]
+    for section in sections:
+        recurse_group(section)
+
 
 def combine_nwb_file(
     main_nwb_fp: Path,
@@ -250,6 +279,8 @@ def combine_nwb_file(
                 try:
                     out_io.export(src_io=main_io, write_args=dict(link_data=False))
                 except Exception as e:
+                    print_nwb_dataset_info(main_nwb)
+                    print_nwb_dataset_info(sub_nwb)
                     pdb.set_trace()
                     print(f"Error occurred while saving merged file: {e}")
 
