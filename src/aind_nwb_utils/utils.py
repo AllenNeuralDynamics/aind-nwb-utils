@@ -19,6 +19,12 @@ from pynwb import NWBHDF5IO
 from pynwb.file import Device, Subject
 from aind_nwb_utils.nwb_io import determine_io
 
+from ndx_events import (
+    EventsTable,
+    CategoricalVectorData,
+    MeaningsTable,
+    NdxEventsNWBFile,
+)
 
 def is_non_mergeable(attr: Any):
     """
@@ -375,7 +381,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
         data_description["creation_time"]
     )
 
-    nwb_file = pynwb.NWBFile(
+    nwb_file = NdxEventsNWBFile(
         session_description="Base NWB file generated with subject metadata",
         identifier=str(uuid.uuid4()),
         session_start_time=session_start_date_time,
