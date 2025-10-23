@@ -204,34 +204,28 @@ def get_nwb_attribute(
 
     return main_io
 
-def print_nwb_dataset_info(nwb_file):
-    """
-    Recursively prints all datasets in NWB (processing, acquisition, stimulus, intervals)
-    with their name, shape, and dtype.
-    """
-    def recurse_group(group, prefix=""):
-        for name, obj in group.items():
-            full_name = f"{prefix}/{name}" if prefix else name
-            try:
-                # TimeSeries, VectorData, etc. have .data attribute
-                data = getattr(obj, "data", None)
-                if data is not None:
-                    try:
-                        print(f"{full_name} -> shape: {data.shape}, dtype: {data.dtype}")
-                    except Exception as e:
-                        print(f"{full_name} -> cannot read data: {e}")
-                # Recurse if it has sub-elements
-                if hasattr(obj, "data_interfaces"):
-                    recurse_group(obj.data_interfaces, prefix=full_name)
-                if hasattr(obj, "children") and obj.children:
-                    recurse_group(obj.children, prefix=full_name)
-            except Exception as e:
-                print(f"{full_name} -> error: {e}")
+def print_nwb_dataset_info(nwb_obj, prefix=""):
+    for name in dir(nwb_obj):
+        if name.startswith("_"):
+            continue
+        try:
+            val = getattr(nwb_obj, name)
+        except Exception as e:
+            print(f"{prefix}{name} -> error: {e}")
+            continue
 
-    # Top-level sections
-    sections = [nwb_file.acquisition, nwb_file.stimulus, nwb_file.processing, nwb_file.intervals]
-    for section in sections:
-        recurse_group(section)
+        if hasattr(val, "items"):  # dict-like
+            print(f"{prefix}{name} (dict-like):")
+            for k, v in val.items():
+                print(f"{prefix}  {k}: {type(v)}")
+        elif hasattr(val, "__len__") and not isinstance(val, str):
+            # for sequences (lists, tuples, DynamicTables)
+            try:
+                print(f"{prefix}{name} (sequence, length={len(val)}): type of first item: {type(val[0])}")
+            except Exception:
+                print(f"{prefix}{name} (sequence, length unknown): {type(val)}")
+        else:
+            print(f"{prefix}{name}: {type(val)}")
 
 
 def combine_nwb_file(
