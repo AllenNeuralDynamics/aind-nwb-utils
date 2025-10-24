@@ -187,8 +187,18 @@ def get_nwb_attribute(
                 main_io.add_time_intervals(attr)
             continue
 
-        if isinstance(attr, (EventsTable, VectorData)):
-            add_data(main_io, field_name, field_name, attr)  # use field_name as the "name" here
+        if isinstance(attr, EventsTable):
+            if field_name in main_io.events:
+                # Merge the columns safely
+                existing_table = main_io.events[field_name]
+                for col_name in attr.columns:
+                    if col_name not in existing_table.columns:
+                        existing_table.add_column(attr.columns[col_name])
+                    else:
+                        # optional: append data if compatible
+                        existing_table[col_name].data.extend(attr[col_name].data)
+            else:
+                main_io.add_events_table(attr)
             continue
         elif isinstance(attr, dict) or hasattr(attr, "keys"):
             for name, data in attr.items():
