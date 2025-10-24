@@ -2,6 +2,7 @@
 
 import datetime
 import json
+from unicodedata import name
 import uuid
 import warnings
 from datetime import datetime as dt
@@ -186,7 +187,10 @@ def get_nwb_attribute(
                 main_io.add_time_intervals(attr)
             continue
 
-        if isinstance(attr, dict) or hasattr(attr, "keys"):
+        if isinstance(data, (EventsTable, VectorData)):
+            add_data(main_io, field_name, name, data)
+            continue
+        elif isinstance(attr, dict) or hasattr(attr, "keys"):
             for name, data in attr.items():
                 data = cast_timeseries_if_needed(data)
                 data = cast_vectordata_if_needed(data)
@@ -273,10 +277,7 @@ def combine_nwb_file(
                 try:
                     out_io.export(src_io=main_io, write_args=dict(link_data=False))
                 except Exception as e:
-                    print_nwb_dataset_info(main_nwb)
-                    print_nwb_dataset_info(sub_nwb)
                     pdb.set_trace()
-                    print(f"Error occurred while saving merged file: {e}")
 
     return output_path
 
