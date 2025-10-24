@@ -187,8 +187,8 @@ def get_nwb_attribute(
                 main_io.add_time_intervals(attr)
             continue
 
-        if isinstance(data, (EventsTable, VectorData)):
-            add_data(main_io, field_name, name, data)
+        if isinstance(attr, (EventsTable, VectorData)):
+            add_data(main_io, field_name, field_name, attr)  # use field_name as the "name" here
             continue
         elif isinstance(attr, dict) or hasattr(attr, "keys"):
             for name, data in attr.items():
