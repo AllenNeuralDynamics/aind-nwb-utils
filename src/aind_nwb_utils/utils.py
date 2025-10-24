@@ -277,7 +277,8 @@ def combine_nwb_file(
                 try:
                     out_io.export(src_io=main_io, write_args=dict(link_data=False))
                 except Exception as e:
-                    pdb.set_trace()
+                    last_exception = e
+                    import pdb; pdb.set_trace()
 
     return output_path
 
