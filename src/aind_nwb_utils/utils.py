@@ -224,7 +224,8 @@ def get_subject_nwb_object(
     """
 
     session_start_date_string = data_description["creation_time"]
-    dob = subject_metadata["date_of_birth"]
+    subject_details = subject_metadata["subject_details"]
+    dob = subject_details["date_of_birth"]
     subject_dob = dt.strptime(dob, "%Y-%m-%d").replace(
         tzinfo=pytz.timezone("US/Pacific")
     )
@@ -236,10 +237,10 @@ def get_subject_nwb_object(
     subject_age = session_start_date_time - subject_dob
 
     age = "P" + str(subject_age.days) + "D"
-    if isinstance(subject_metadata["species"], dict):
-        species = subject_metadata["species"]["name"]
+    if isinstance(subject_details["species"], dict):
+        species = subject_details["species"]["name"]
     else:
-        species = subject_metadata["species"]
+        species = subject_details["species"]
 
     return Subject(
         subject_id=subject_metadata["subject_id"],
@@ -247,10 +248,9 @@ def get_subject_nwb_object(
         sex=subject_metadata["sex"][0].upper(),
         date_of_birth=subject_dob,
         age=age,
-        genotype=subject_metadata["genotype"],
+        genotype=subject_details["genotype"],
         description=None,
-        strain=subject_metadata.get("background_strain")
-        or subject_metadata.get("breeding_group"),
+        strain=subject_details["strain"]["name"]
     )
 
 
