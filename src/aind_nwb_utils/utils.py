@@ -245,7 +245,7 @@ def get_subject_nwb_object(
     return Subject(
         subject_id=subject_metadata["subject_id"],
         species=species,
-        sex=subject_metadata["sex"][0].upper(),
+        sex=subject_details["sex"][0].upper(),
         date_of_birth=subject_dob,
         age=age,
         genotype=subject_details["genotype"],
