@@ -2,7 +2,6 @@
 
 import datetime
 import json
-from unicodedata import name
 import uuid
 import warnings
 from datetime import datetime as dt
@@ -22,10 +21,9 @@ from aind_nwb_utils.nwb_io import determine_io
 
 from ndx_events import (
     EventsTable,
-    CategoricalVectorData,
-    MeaningsTable,
     NdxEventsNWBFile,
 )
+
 
 def is_non_mergeable(attr: Any):
     """
@@ -42,10 +40,15 @@ def is_non_mergeable(attr: Any):
         True if the attribute is a non-container type or
         should be skipped during merging.
     """
-    return isinstance(attr, (str,
-                             datetime.datetime,
-                             list,
-                             pynwb.file.Subject,),)
+    return isinstance(
+        attr,
+        (
+            str,
+            datetime.datetime,
+            list,
+            pynwb.file.Subject,
+        ),
+    )
 
 
 def cast_timeseries_if_needed(ts_obj):
@@ -116,10 +119,7 @@ def cast_vectordata_if_needed(obj):
 
 
 def add_data(
-    main_io: Union[NWBHDF5IO, NWBZarrIO],
-    field: str,
-    name: str,
-    obj: Any
+    main_io: Union[NWBHDF5IO, NWBZarrIO], field: str, name: str, obj: Any
 ):
     """
     Add a data object to the appropriate field in the NWB file.
@@ -196,7 +196,9 @@ def get_nwb_attribute(
                         existing_table.add_column(attr.columns[col_name])
                     else:
                         # optional: append data if compatible
-                        existing_table[col_name].data.extend(attr[col_name].data)
+                        existing_table[col_name].data.extend(
+                            attr[col_name].data
+                        )
             else:
                 main_io.add_events_table(attr)
             continue
@@ -251,7 +253,6 @@ def combine_nwb_file(
     print(main_nwb_fp)
     print(sub_nwb_fp)
     print(f"Saving merged file to: {output_path}")
-    import pdb
 
     with main_io_class(main_nwb_fp, "r") as main_io:
         main_nwb = main_io.read()
@@ -262,11 +263,16 @@ def combine_nwb_file(
 
             with save_io(output_path, "w") as out_io:
                 try:
-                    out_io.export(src_io=main_io, write_args=dict(link_data=False))
+                    out_io.export(
+                        src_io=main_io, write_args=dict(link_data=False)
+                    )
                 except Exception as e:
                     last_exception = e
+                    print(f"Failed to export NWB file: {e}")
+                    raise last_exception
 
     return output_path
+
 
 def _get_session_start_date_time(session_start_date_string: str) -> datetime:
     """
@@ -476,8 +482,7 @@ def get_ephys_devices_from_metadata(  # noqa: C901
     if ads_2:  # ADS > 2.0
         if acquisition is not None and instrument is not None:
             acquisition_schema_version = acquisition.get(
-                "schema_version",
-                None
+                "schema_version", None
             )
 
             if parse(acquisition_schema_version) >= parse("2.0.0"):
@@ -801,13 +806,9 @@ def get_ephys_devices_from_metadata(  # noqa: C901
                             "primary_targeted_structure"
                         )
                         if primary_targeted_structure is not None:
-                            if isinstance(
-                                primary_targeted_structure, dict
-                            ):
+                            if isinstance(primary_targeted_structure, dict):
                                 device_target_location = (
-                                    primary_targeted_structure.get(
-                                        "acronym"
-                                    )
+                                    primary_targeted_structure.get("acronym")
                                 )
                             else:
                                 device_target_location = (
