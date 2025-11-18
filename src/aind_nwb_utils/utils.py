@@ -218,29 +218,6 @@ def get_nwb_attribute(
 
     return main_io
 
-def print_nwb_dataset_info(nwb_obj, prefix=""):
-    for name in dir(nwb_obj):
-        if name.startswith("_"):
-            continue
-        try:
-            val = getattr(nwb_obj, name)
-        except Exception as e:
-            print(f"{prefix}{name} -> error: {e}")
-            continue
-
-        if hasattr(val, "items"):  # dict-like
-            print(f"{prefix}{name} (dict-like):")
-            for k, v in val.items():
-                print(f"{prefix}  {k}: {type(v)}")
-        elif hasattr(val, "__len__") and not isinstance(val, str):
-            # for sequences (lists, tuples, DynamicTables)
-            try:
-                print(f"{prefix}{name} (sequence, length={len(val)}): type of first item: {type(val[0])}")
-            except Exception:
-                print(f"{prefix}{name} (sequence, length unknown): {type(val)}")
-        else:
-            print(f"{prefix}{name}: {type(val)}")
-
 
 def combine_nwb_file(
     main_nwb_fp: Path,
@@ -288,7 +265,6 @@ def combine_nwb_file(
                     out_io.export(src_io=main_io, write_args=dict(link_data=False))
                 except Exception as e:
                     last_exception = e
-                    import pdb; pdb.set_trace()
 
     return output_path
 
