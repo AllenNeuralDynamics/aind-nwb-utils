@@ -665,6 +665,7 @@ class TestUtils(unittest.TestCase):
 
         # Mock __getitem__ to return appropriate column
         def mock_getitem(key):
+            """Mock __getitem__ method for EventsTable."""
             return mock_new_events_table.columns[key]
 
         mock_new_events_table.__getitem__.side_effect = mock_getitem
