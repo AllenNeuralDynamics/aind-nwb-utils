@@ -11,14 +11,23 @@ from pathlib import Path
 from unittest.mock import MagicMock, create_autospec
 
 from pynwb import NWBHDF5IO, NWBFile
-from pynwb.base import Images  # example NWB container
+from pynwb.base import (
+    Images,
+    VectorData,
+    ProcessingModule,
+)  # example NWB container
 from pynwb.file import Device, Subject
+from pynwb.epoch import TimeIntervals
+from ndx_events import EventsTable
 
 from aind_nwb_utils.nwb_io import determine_io
 from aind_nwb_utils.utils import (
     _get_session_start_date_time,
+    _handle_events_table,
+    _handle_time_intervals,
     add_data,
     cast_timeseries_if_needed,
+    cast_vectordata_if_needed,
     combine_nwb_file,
     create_base_nwb_file,
     get_ephys_devices_from_metadata,
@@ -80,6 +89,58 @@ class TestUtils(unittest.TestCase):
         obj.name = "anything"
         with self.assertRaises(ValueError):
             add_data(nwbfile, "unknown", obj.name, obj)
+
+    def test_add_data_to_processing(self):
+        """Test adding data to processing"""
+        nwbfile = create_autospec(NWBFile)
+        obj = create_autospec(ProcessingModule)
+        obj.name = "test_processing"
+
+        # Simulate no pre-existing object with this name
+        setattr(nwbfile, "processing", {})
+
+        add_data(nwbfile, "processing", obj.name, obj)
+        nwbfile.add_processing_module.assert_called_once_with(obj)
+
+    def test_add_data_to_analysis(self):
+        """Test adding data to analysis"""
+        nwbfile = create_autospec(NWBFile)
+        obj = create_autospec(
+            Images
+        )  # Using Images as an example analysis object
+        obj.name = "test_analysis"
+
+        # Simulate no pre-existing object with this name
+        setattr(nwbfile, "analysis", {})
+
+        add_data(nwbfile, "analysis", obj.name, obj)
+        nwbfile.add_analysis.assert_called_once_with(obj)
+
+    def test_add_data_to_intervals(self):
+        """Test adding data to intervals"""
+        nwbfile = create_autospec(NWBFile)
+        obj = create_autospec(TimeIntervals)
+        obj.name = "test_intervals"
+
+        # Simulate no pre-existing object with this name
+        setattr(nwbfile, "intervals", {})
+
+        add_data(nwbfile, "intervals", obj.name, obj)
+        nwbfile.add_time_intervals.assert_called_once_with(obj)
+
+    def test_add_data_to_events(self):
+        """Test adding data to events"""
+        nwbfile = create_autospec(NWBFile)
+        obj = create_autospec(EventsTable)
+        obj.name = "test_events"
+
+        # Simulate no pre-existing object with this name
+        setattr(nwbfile, "events", {})
+
+        nwbfile.add_events_table = MagicMock()
+
+        add_data(nwbfile, "events", obj.name, obj)
+        nwbfile.add_events_table.assert_called_once_with(obj)
 
     def test_get_nwb_attribute(self):
         """Test get_nwb_attribute function"""
@@ -242,6 +303,132 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(result.data.dtype, np.float32)
         np.testing.assert_array_equal(result.data, data.astype(np.float32))
 
+    def test_cast_timeseries_if_needed_exception_handling(self):
+        """Test that exceptions during casting are handled gracefully"""
+        from unittest.mock import patch
+
+        # Create test data with float64 dtype
+        data = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+
+        # Create TimeSeries with float64 data
+        ts = TimeSeries(
+            name="test_exception_timeseries",
+            data=data,
+            unit="volts",
+            rate=1000.0,
+            description="Test exception timeseries",
+        )
+
+        # Mock numpy asarray to raise an exception during casting
+        with patch(
+            "numpy.asarray", side_effect=Exception("Mock casting error")
+        ):
+            # Capture print output to verify error message
+            with patch("builtins.print") as mock_print:
+                result = cast_timeseries_if_needed(ts)
+
+                # Should return original object when casting fails
+                self.assertEqual(id(result), id(ts))
+
+                # Verify error message was printed
+                mock_print.assert_called_once_with(
+                    "Could not cast TimeSeries 'test_exception_timeseries'"
+                    " — Mock casting error"
+                )
+
+    def test_cast_vectordata_if_needed_no_casting_needed(self):
+        """Test that VectorData with float32/int32 is returned unchanged"""
+        # Create test data with float32 dtype (no casting needed)
+        data = np.array([1.0, 2.0, 3.0], dtype=np.float32)
+
+        # Create VectorData with float32 data
+        vector_data = VectorData(
+            name="test_vectordata_float32",
+            data=data,
+            description="Test float32 vector data",
+        )
+
+        # Store original data reference
+        original_data = vector_data.data
+
+        # Cast the VectorData
+        result = cast_vectordata_if_needed(vector_data)
+
+        # Should return the same object
+        self.assertEqual(id(result), id(vector_data))
+
+        # Data should not be modified (same reference)
+        self.assertEqual(id(result.data), id(original_data))
+        self.assertEqual(result.data.dtype, np.float32)
+
+    def test_cast_vectordata_if_needed_non_vectordata_object(self):
+        """Test that non-VectorData objects are returned unchanged"""
+        # Test with a string
+        test_string = "not a vectordata"
+        result = cast_vectordata_if_needed(test_string)
+        self.assertEqual(result, test_string)
+
+        # Test with a TimeSeries (different type)
+        ts = TimeSeries(
+            name="test_ts",
+            data=np.array([1.0, 2.0]),
+            unit="volts",
+            rate=1000.0,
+            description="Test timeseries",
+        )
+        result = cast_vectordata_if_needed(ts)
+        self.assertEqual(id(result), id(ts))
+
+    def test_cast_vectordata_if_needed_no_data_attribute(self):
+        """Test VectorData without data attribute"""
+        # Mock a VectorData-like object without data attribute
+        mock_vectordata = MagicMock(spec=VectorData)
+        mock_vectordata.name = "mock_vectordata"
+        # Remove data attribute
+        del mock_vectordata.data
+
+        # Should return the original object unchanged
+        result = cast_vectordata_if_needed(mock_vectordata)
+        self.assertEqual(id(result), id(mock_vectordata))
+
+    def test_cast_vectordata_if_needed_exception_handling(self):
+        """Test that exceptions during VectorData casting are handled"""
+        from unittest.mock import patch
+
+        # Create test data with float64 dtype
+        data = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+
+        # Create VectorData with float64 data
+        vector_data = VectorData(
+            name="test_exception_vectordata",
+            data=data,
+            description="Test exception vector data",
+        )
+
+        # Store original data for comparison
+        original_data = vector_data.data
+
+        # Mock numpy asarray to raise an exception during casting
+        with patch(
+            "numpy.asarray", side_effect=Exception("Mock casting error")
+        ):
+            # Capture print output to verify error message
+            with patch("builtins.print") as mock_print:
+                result = cast_vectordata_if_needed(vector_data)
+
+                # Should return original object when casting fails
+                self.assertEqual(id(result), id(vector_data))
+
+                # Data should remain unchanged
+                np.testing.assert_array_equal(result.data, original_data)
+                self.assertEqual(result.data.dtype, np.float64)
+
+                # Verify error message was printed
+                mock_print.assert_called_once_with(
+                    "Could not cast VectorData 'test_exception_vectordata' — "
+                    "Mock casting error"
+                )
+
     def test_get_session_start_date_time(self):
         """Test _get_session_start_date_time"""
         with open(Path("tests/resources/data_description.json"), "r") as f:
@@ -293,6 +480,208 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(devices_target_location.keys())
         self.assertIsInstance(devices["Probe A"], Device)
         self.assertEqual(devices_target_location["Probe A"], "ACB")
+
+    def test_handle_time_intervals(self):
+        """Test _handle_time_intervals function"""
+        # Create a mock NWB file IO object
+        mock_main_io = MagicMock()
+
+        # Create a mock TimeIntervals object
+        mock_time_intervals = MagicMock(spec=TimeIntervals)
+        mock_time_intervals.name = "test_intervals"
+
+        # Test with field_name == "intervals"
+        _handle_time_intervals(mock_main_io, mock_time_intervals, "intervals")
+
+        # Verify that reset_parent was called
+        mock_time_intervals.reset_parent.assert_called_once()
+
+        # Verify that parent was set to main_io
+        self.assertEqual(mock_time_intervals.parent, mock_main_io)
+
+        mock_main_io.add_time_intervals.assert_called_once_with(
+            mock_time_intervals
+        )
+
+        # Reset mocks for next test
+        mock_main_io.reset_mock()
+        mock_time_intervals.reset_mock()
+
+        # Test with field_name != "intervals"
+        _handle_time_intervals(
+            mock_main_io, mock_time_intervals, "other_field"
+        )
+
+        # Verify that reset_parent and parent setting still occur
+        mock_time_intervals.reset_parent.assert_called_once()
+        self.assertEqual(mock_time_intervals.parent, mock_main_io)
+
+        mock_main_io.add_time_intervals.assert_not_called()
+
+    def test_handle_time_intervals_with_real_objects(self):
+        """Test _handle_time_intervals with real NWB objects"""
+        # Create a real NWB file for testing
+        nwb_file = NWBFile(
+            session_description="test session",
+            identifier="test_id",
+            session_start_time=datetime.datetime.now(tz=datetime.timezone.utc),
+        )
+
+        # Create a TimeIntervals object
+        time_intervals = TimeIntervals(
+            name="test_intervals",
+            description="Test time intervals for testing",
+        )
+
+        # Add some sample intervals
+        time_intervals.add_interval(
+            start_time=0.0, stop_time=1.0, tags=["test_tag"], timeseries=[]
+        )
+
+        # Test the function
+        _handle_time_intervals(nwb_file, time_intervals, "intervals")
+
+        # Verify the time intervals were added to the NWB file
+        self.assertIn("test_intervals", nwb_file.intervals)
+        self.assertEqual(nwb_file.intervals["test_intervals"], time_intervals)
+        self.assertEqual(time_intervals.parent, nwb_file)
+
+    def test_handle_events_table_new_table(self):
+        """Test _handle_events_table function with new events table"""
+        # Create a mock NWB file IO object
+        mock_main_io = MagicMock()
+        mock_main_io.events = {}  # No existing events
+
+        # Create a mock EventsTable object
+        mock_events_table = MagicMock(spec=EventsTable)
+        mock_events_table.name = "test_events"
+
+        # Test adding new events table
+        _handle_events_table(mock_main_io, mock_events_table, "test_events")
+
+        # Verify that add_events_table was called for new table
+        mock_main_io.add_events_table.assert_called_once_with(
+            mock_events_table
+        )
+
+    def test_handle_events_table_merge_existing_new_columns(self):
+        """Test _handle_events_table merging with existing table"""
+        # Create a mock NWB file IO object
+        mock_main_io = MagicMock()
+
+        # Create mock existing events table
+        mock_existing_table = MagicMock()
+        mock_existing_table.columns = ["existing_col"]
+        mock_main_io.events = {"test_events": mock_existing_table}
+
+        # Create a mock EventsTable with new columns
+        mock_new_events_table = MagicMock(spec=EventsTable)
+        mock_new_events_table.name = "test_events"
+        mock_new_events_table.columns = ["new_col"]
+
+        # Mock the column objects
+        mock_new_column = MagicMock()
+        mock_new_events_table.columns = {"new_col": mock_new_column}
+
+        # Test merging with existing table
+        _handle_events_table(
+            mock_main_io, mock_new_events_table, "test_events"
+        )
+
+        mock_existing_table.add_column.assert_called_once_with(mock_new_column)
+        mock_main_io.add_events_table.assert_not_called()
+
+    def test_handle_events_table_merge_existing_extend_data(self):
+        """Test _handle_events_table extend existing columns"""
+        # Create a mock NWB file IO object
+        mock_main_io = MagicMock()
+
+        # Create mock existing events table with existing column
+        mock_existing_table = MagicMock()
+        mock_existing_column = MagicMock()
+        mock_existing_column.data = MagicMock()  # Mock the data object itself
+        mock_existing_column.data.extend = (
+            MagicMock()
+        )  # Mock the extend method
+        mock_existing_table.columns = ["shared_col"]
+        mock_existing_table.__getitem__.return_value = mock_existing_column
+        mock_main_io.events = {"test_events": mock_existing_table}
+
+        # Create a mock EventsTable with same column name
+        mock_new_events_table = MagicMock(spec=EventsTable)
+        mock_new_events_table.name = "test_events"
+        mock_new_events_table.columns = ["shared_col"]
+
+        # Mock the new column data
+        mock_new_column = MagicMock()
+        mock_new_column.data = [4, 5, 6]
+        mock_new_events_table.__getitem__.return_value = mock_new_column
+        mock_new_events_table.columns = {"shared_col": mock_new_column}
+
+        # Test merging with existing table
+        _handle_events_table(
+            mock_main_io, mock_new_events_table, "test_events"
+        )
+
+        # Verify that data was extended
+        mock_existing_column.data.extend.assert_called_once_with([4, 5, 6])
+
+        # Verify that add_column was NOT called (column already exists)
+        mock_existing_table.add_column.assert_not_called()
+
+        # Verify that add_events_table was NOT called (we're merging)
+        mock_main_io.add_events_table.assert_not_called()
+
+    def test_handle_events_table_merge_mixed_columns(self):
+        """Test _handle_events_table with both new and existing columns"""
+        # Create a mock NWB file IO object
+        mock_main_io = MagicMock()
+
+        # Create mock existing events table
+        mock_existing_table = MagicMock()
+        mock_existing_column = MagicMock()
+        mock_existing_column.data = MagicMock()  # Mock the data object itself
+        mock_existing_column.data.extend = (
+            MagicMock()
+        )  # Mock the extend method
+        mock_existing_table.columns = ["existing_col"]
+        mock_existing_table.__getitem__.return_value = mock_existing_column
+        mock_main_io.events = {"test_events": mock_existing_table}
+
+        # Create a mock EventsTable with both existing and new columns
+        mock_new_events_table = MagicMock(spec=EventsTable)
+        mock_new_events_table.name = "test_events"
+
+        # Mock columns
+        mock_existing_column_new_data = MagicMock()
+        mock_existing_column_new_data.data = [4, 5, 6]
+        mock_new_column = MagicMock()
+
+        # Setup the columns dictionary
+        mock_new_events_table.columns = {
+            "existing_col": mock_existing_column_new_data,
+            "new_col": mock_new_column,
+        }
+
+        # Mock __getitem__ to return appropriate column
+        def mock_getitem(key):
+            return mock_new_events_table.columns[key]
+
+        mock_new_events_table.__getitem__.side_effect = mock_getitem
+
+        # Test merging with existing table
+        _handle_events_table(
+            mock_main_io, mock_new_events_table, "test_events"
+        )
+
+        # Verify that data was extended for existing column
+        mock_existing_column.data.extend.assert_called_once_with([4, 5, 6])
+
+        # Verify that add_column was called for new column
+        mock_existing_table.add_column.assert_called_once_with(mock_new_column)
+
+        # Verify that add_events_table was NOT called
+        mock_main_io.add_events_table.assert_not_called()
 
 
 if __name__ == "__main__":
