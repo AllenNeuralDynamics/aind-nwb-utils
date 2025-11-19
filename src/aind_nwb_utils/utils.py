@@ -155,6 +155,98 @@ def add_data(
         raise ValueError(f"Unknown attribute type: {field}")
 
 
+def _handle_time_intervals(
+    main_io: Union[NWBHDF5IO, NWBZarrIO], attr: Any, field_name: str
+) -> None:
+    """
+    Handle TimeIntervals attributes during NWB merge.
+
+    Parameters
+    ----------
+    main_io : Union[NWBHDF5IO, NWBZarrIO]
+        The destination NWB file IO object.
+    attr : Any
+        The TimeIntervals attribute to merge.
+    field_name : str
+        The name of the field being processed.
+
+    Returns
+    -------
+    None
+        Merges the TimeIntervals into main_io in place.
+    """
+    attr.reset_parent()
+    attr.parent = main_io
+    if field_name == "intervals":
+        main_io.add_time_intervals(attr)
+
+
+def _handle_events_table(
+    main_io: Union[NWBHDF5IO, NWBZarrIO], attr: EventsTable, field_name: str
+) -> None:
+    """
+    Handle EventsTable attributes during NWB merge.
+
+    Parameters
+    ----------
+    main_io : Union[NWBHDF5IO, NWBZarrIO]
+        The destination NWB file IO object.
+    attr : EventsTable
+        The EventsTable attribute to merge.
+    field_name : str
+        The name of the field being processed.
+
+    Returns
+    -------
+    None
+        Merges the EventsTable into main_io in place.
+    """
+    if field_name in main_io.events:
+        # Merge the columns safely
+        existing_table = main_io.events[field_name]
+        for col_name in attr.columns:
+            if col_name not in existing_table.columns:
+                existing_table.add_column(attr.columns[col_name])
+            else:
+                existing_table[col_name].data.extend(attr[col_name].data)
+    else:
+        main_io.add_events_table(attr)
+
+
+def _handle_dict_like_attributes(
+    main_io: Union[NWBHDF5IO, NWBZarrIO], attr: Any, field_name: str
+) -> None:
+    """
+    Handle dictionary-like attributes during NWB merge.
+
+    Parameters
+    ----------
+    main_io : Union[NWBHDF5IO, NWBZarrIO]
+        The destination NWB file IO object.
+    attr : Any
+        The dictionary-like attribute to merge.
+    field_name : str
+        The name of the field being processed.
+
+    Returns
+    -------
+    None
+        Merges the dictionary-like attributes into main_io in place.
+    """
+    for name, data in attr.items():
+        data = cast_timeseries_if_needed(data)
+        data = cast_vectordata_if_needed(data)
+
+        if field_name == "devices":
+            if name not in main_io.devices:
+                data.reset_parent()
+                data.parent = main_io
+                main_io.add_device(data)
+            return
+
+        add_data(main_io, field_name, name, data)
+
+
 def get_nwb_attribute(
     main_io: Union[NWBHDF5IO, NWBZarrIO], sub_io: Union[NWBHDF5IO, NWBZarrIO]
 ) -> Union[NWBHDF5IO, NWBZarrIO]:
@@ -181,40 +273,11 @@ def get_nwb_attribute(
             continue
 
         if isinstance(attr, pynwb.epoch.TimeIntervals):
-            attr.reset_parent()
-            attr.parent = main_io
-            if field_name == "intervals":
-                main_io.add_time_intervals(attr)
-            continue
-
-        if isinstance(attr, EventsTable):
-            if field_name in main_io.events:
-                # Merge the columns safely
-                existing_table = main_io.events[field_name]
-                for col_name in attr.columns:
-                    if col_name not in existing_table.columns:
-                        existing_table.add_column(attr.columns[col_name])
-                    else:
-                        # optional: append data if compatible
-                        existing_table[col_name].data.extend(
-                            attr[col_name].data
-                        )
-            else:
-                main_io.add_events_table(attr)
-            continue
+            _handle_time_intervals(main_io, attr, field_name)
+        elif isinstance(attr, EventsTable):
+            _handle_events_table(main_io, attr, field_name)
         elif isinstance(attr, dict) or hasattr(attr, "keys"):
-            for name, data in attr.items():
-                data = cast_timeseries_if_needed(data)
-                data = cast_vectordata_if_needed(data)
-
-                if field_name == "devices":
-                    if name not in main_io.devices:
-                        data.reset_parent()
-                        data.parent = main_io
-                        main_io.add_device(data)
-                    continue
-
-                add_data(main_io, field_name, name, data)
+            _handle_dict_like_attributes(main_io, attr, field_name)
         else:
             raise TypeError(f"Unexpected type for {field_name}: {type(attr)}")
 
