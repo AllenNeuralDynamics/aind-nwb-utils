@@ -2,11 +2,8 @@
 
 import datetime
 import tempfile
-from pathlib import Path
 import numpy as np
 
-from pynwb import NWBHDF5IO
-from pynwb import NWBFile
 from pynwb import TimeSeries
 import json
 import unittest
