@@ -23,6 +23,9 @@ from ndx_events import (
     EventsTable,
     NdxEventsNWBFile,
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def is_non_mergeable(attr: Any):
@@ -55,6 +58,7 @@ def cast_timeseries_if_needed(ts_obj):
     """
     If TimeSeries data is float64/int64
     cast to float32/int32 and return new object.
+    This prevents data type check errors between nwb files.
 
     Parameters
     ----------
@@ -90,7 +94,7 @@ def cast_timeseries_if_needed(ts_obj):
                 control_description=ts_obj.control_description,
             )
         except Exception as e:
-            print(f"Could not cast TimeSeries '{ts_obj.name}' — {e}")
+            logger.exception(f"Could not cast TimeSeries '{ts_obj.name}'")
     return ts_obj
 
 
