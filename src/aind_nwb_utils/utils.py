@@ -94,7 +94,7 @@ def cast_timeseries_if_needed(ts_obj):
                 control_description=ts_obj.control_description,
             )
         except Exception as e:
-            logger.exception(f"Could not cast TimeSeries '{ts_obj.name}'")
+            logger.exception(f"Could not cast TimeSeries '{ts_obj.name}' + {e}")
     return ts_obj
 
 
@@ -118,7 +118,7 @@ def cast_vectordata_if_needed(obj):
                 new_dtype = np.float32 if dtype == np.float64 else np.int32
                 obj.data = np.asarray(obj.data).astype(new_dtype)
             except Exception as e:
-                logger.exception(f"Could not cast VectorData '{obj.name}'")
+                logger.exception(f"Could not cast VectorData '{obj.name}' + {e}")
     return obj
 
 
