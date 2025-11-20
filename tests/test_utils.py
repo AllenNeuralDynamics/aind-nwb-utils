@@ -323,17 +323,17 @@ class TestUtils(unittest.TestCase):
         with patch(
             "numpy.asarray", side_effect=Exception("Mock casting error")
         ):
-            # Capture print output to verify error message
-            with patch("builtins.print") as mock_print:
+            # Capture logger output to verify error message
+            with patch("aind_nwb_utils.utils.logger.exception") as mock_logger:
                 result = cast_timeseries_if_needed(ts)
 
                 # Should return original object when casting fails
                 self.assertEqual(id(result), id(ts))
 
-                # Verify error message was printed
-                mock_print.assert_called_once_with(
+                # Verify error message was logged
+                mock_logger.assert_called_once_with(
                     "Could not cast TimeSeries 'test_exception_timeseries'"
-                    " — Mock casting error"
+                    " + Mock casting error"
                 )
 
     def test_cast_vectordata_if_needed_no_casting_needed(self):
@@ -412,8 +412,8 @@ class TestUtils(unittest.TestCase):
         with patch(
             "numpy.asarray", side_effect=Exception("Mock casting error")
         ):
-            # Capture print output to verify error message
-            with patch("builtins.print") as mock_print:
+            # Capture logger output to verify error message
+            with patch("aind_nwb_utils.utils.logger.exception") as mock_logger:
                 result = cast_vectordata_if_needed(vector_data)
 
                 # Should return original object when casting fails
@@ -423,10 +423,10 @@ class TestUtils(unittest.TestCase):
                 np.testing.assert_array_equal(result.data, original_data)
                 self.assertEqual(result.data.dtype, np.float64)
 
-                # Verify error message was printed
-                mock_print.assert_called_once_with(
-                    "Could not cast VectorData 'test_exception_vectordata' — "
-                    "Mock casting error"
+                # Verify error message was logged
+                mock_logger.assert_called_once_with(
+                    "Could not cast VectorData 'test_exception_vectordata' +"
+                    " Mock casting error"
                 )
 
     def test_get_session_start_date_time(self):
