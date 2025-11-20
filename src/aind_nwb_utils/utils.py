@@ -118,7 +118,7 @@ def cast_vectordata_if_needed(obj):
                 new_dtype = np.float32 if dtype == np.float64 else np.int32
                 obj.data = np.asarray(obj.data).astype(new_dtype)
             except Exception as e:
-                print(f"Could not cast VectorData '{obj.name}' — {e}")
+                logger.exception(f"Could not cast VectorData '{obj.name}'")
     return obj
 
 
