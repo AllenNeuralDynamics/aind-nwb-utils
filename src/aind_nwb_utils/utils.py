@@ -8,14 +8,24 @@ from datetime import datetime as dt
 from pathlib import Path
 from typing import Any, Union
 
+import numpy as np
 import pynwb
+from pynwb import TimeSeries
+from pynwb.base import VectorData
 import pytz
 from hdmf_zarr import NWBZarrIO
 from packaging.version import parse
 from pynwb import NWBHDF5IO
 from pynwb.file import Device, Subject
+from aind_nwb_utils.nwb_io import determine_io
 
-from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
+from ndx_events import (
+    EventsTable,
+    NdxEventsNWBFile,
+)
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def is_non_mergeable(attr: Any):
@@ -42,6 +52,78 @@ def is_non_mergeable(attr: Any):
             pynwb.file.Subject,
         ),
     )
+
+
+def cast_timeseries_if_needed(ts_obj):
+    """
+    If TimeSeries data is float64/int64
+    cast to float32/int32 and return new object.
+    This prevents data type check errors between nwb files.
+
+    Parameters
+    ----------
+    ts_obj : TimeSeries
+        The TimeSeries object to check and potentially cast.
+
+    Returns
+    -------
+    ts_obj: TimeSeries or original object
+        The original TimeSeries object or a new one with casted data.
+    """
+    if not isinstance(ts_obj, TimeSeries):
+        return ts_obj  # Only handle TimeSeries
+
+    data = ts_obj.data
+    if hasattr(data, "dtype") and data.dtype in [np.float64, np.int64]:
+        try:
+            new_dtype = np.float32 if data.dtype == np.float64 else np.int32
+            casted_data = np.asarray(data).astype(new_dtype)
+
+            return TimeSeries(
+                name=ts_obj.name,
+                data=casted_data,
+                unit=ts_obj.unit,
+                rate=ts_obj.rate,
+                conversion=ts_obj.conversion,
+                resolution=ts_obj.resolution,
+                starting_time=ts_obj.starting_time,
+                timestamps=ts_obj.timestamps,
+                description=ts_obj.description,
+                comments=ts_obj.comments,
+                control=ts_obj.control,
+                control_description=ts_obj.control_description,
+            )
+        except Exception as e:
+            logger.exception(
+                f"Could not cast TimeSeries '{ts_obj.name}' + {e}"
+            )
+    return ts_obj
+
+
+def cast_vectordata_if_needed(obj):
+    """
+    Cast the data inside VectorData objects if necessary.
+
+    Parameters
+    ----------
+    obj : Any
+        The object to check and potentially cast.
+    Returns
+    -------
+    Any
+        The original object or a new VectorData with casted data.
+    """
+    if isinstance(obj, VectorData) and hasattr(obj, "data"):
+        dtype = getattr(obj.data, "dtype", None)
+        if dtype in [np.float64, np.int64]:
+            try:
+                new_dtype = np.float32 if dtype == np.float64 else np.int32
+                obj.data = np.asarray(obj.data).astype(new_dtype)
+            except Exception as e:
+                logger.exception(
+                    f"Could not cast VectorData '{obj.name}' + {e}"
+                )
+    return obj
 
 
 def add_data(
@@ -75,8 +157,102 @@ def add_data(
         main_io.add_analysis(obj)
     elif field == "intervals":
         main_io.add_time_intervals(obj)
+    elif field == "events":
+        main_io.add_events_table(obj)
     else:
         raise ValueError(f"Unknown attribute type: {field}")
+
+
+def _handle_time_intervals(
+    main_io: Union[NWBHDF5IO, NWBZarrIO], attr: Any, field_name: str
+) -> None:
+    """
+    Handle TimeIntervals attributes during NWB merge.
+
+    Parameters
+    ----------
+    main_io : Union[NWBHDF5IO, NWBZarrIO]
+        The destination NWB file IO object.
+    attr : Any
+        The TimeIntervals attribute to merge.
+    field_name : str
+        The name of the field being processed.
+
+    Returns
+    -------
+    None
+        Merges the TimeIntervals into main_io in place.
+    """
+    attr.reset_parent()
+    attr.parent = main_io
+    if field_name == "intervals":
+        main_io.add_time_intervals(attr)
+
+
+def _handle_events_table(
+    main_io: Union[NWBHDF5IO, NWBZarrIO], attr: EventsTable, field_name: str
+) -> None:
+    """
+    Handle EventsTable attributes during NWB merge.
+
+    Parameters
+    ----------
+    main_io : Union[NWBHDF5IO, NWBZarrIO]
+        The destination NWB file IO object.
+    attr : EventsTable
+        The EventsTable attribute to merge.
+    field_name : str
+        The name of the field being processed.
+
+    Returns
+    -------
+    None
+        Merges the EventsTable into main_io in place.
+    """
+    if field_name in main_io.events:
+        # Merge the columns safely
+        existing_table = main_io.events[field_name]
+        for col_name in attr.columns:
+            if col_name not in existing_table.columns:
+                existing_table.add_column(attr.columns[col_name])
+            else:
+                existing_table[col_name].data.extend(attr[col_name].data)
+    else:
+        main_io.add_events_table(attr)
+
+
+def _handle_dict_like_attributes(
+    main_io: Union[NWBHDF5IO, NWBZarrIO], attr: Any, field_name: str
+) -> None:
+    """
+    Handle dictionary-like attributes during NWB merge.
+
+    Parameters
+    ----------
+    main_io : Union[NWBHDF5IO, NWBZarrIO]
+        The destination NWB file IO object.
+    attr : Any
+        The dictionary-like attribute to merge.
+    field_name : str
+        The name of the field being processed.
+
+    Returns
+    -------
+    None
+        Merges the dictionary-like attributes into main_io in place.
+    """
+    for name, data in attr.items():
+        data = cast_timeseries_if_needed(data)
+        data = cast_vectordata_if_needed(data)
+
+        if field_name == "devices":
+            if name not in main_io.devices:
+                data.reset_parent()
+                data.parent = main_io
+                main_io.add_device(data)
+            return
+
+        add_data(main_io, field_name, name, data)
 
 
 def get_nwb_attribute(
@@ -105,15 +281,11 @@ def get_nwb_attribute(
             continue
 
         if isinstance(attr, pynwb.epoch.TimeIntervals):
-            attr.reset_parent()
-            attr.parent = main_io
-            if field_name == "intervals":
-                main_io.add_time_intervals(attr)
-            continue
-
-        if hasattr(attr, "items"):
-            for name, data in attr.items():
-                add_data(main_io, field_name, name, data)
+            _handle_time_intervals(main_io, attr, field_name)
+        elif isinstance(attr, EventsTable):
+            _handle_events_table(main_io, attr, field_name)
+        elif isinstance(attr, dict) or hasattr(attr, "keys"):
+            _handle_dict_like_attributes(main_io, attr, field_name)
         else:
             raise TypeError(f"Unexpected type for {field_name}: {type(attr)}")
 
@@ -123,12 +295,12 @@ def get_nwb_attribute(
 def combine_nwb_file(
     main_nwb_fp: Path,
     sub_nwb_fp: Path,
-    save_dir: Path,
+    output_path: Path,
     save_io: Union[NWBHDF5IO, NWBZarrIO],
 ) -> Path:
     """
     Combine two NWB files by merging attributes from a
-    secondary file into a main file.
+    secondary file into a main file, and write to output_path.
 
     Parameters
     ----------
@@ -136,8 +308,8 @@ def combine_nwb_file(
         Path to the main NWB file.
     sub_nwb_fp : Path
         Path to the secondary NWB file whose data will be merged.
-    save_dir : Path
-        Directory to save the combined NWB file.
+    output_path : Path
+        Path to write the merged NWB file.
     save_io : Union[NWBHDF5IO, NWBZarrIO]
         IO class used to write the resulting NWB file.
 
@@ -146,17 +318,31 @@ def combine_nwb_file(
     Path
         Path to the saved combined NWB file.
     """
-    main_io = determine_io(main_nwb_fp)
-    sub_io = determine_io(sub_nwb_fp)
-    scratch_fp = create_temp_nwb(save_dir, save_io)
-    with main_io(main_nwb_fp, "r") as main_io:
+    main_io_class = determine_io(main_nwb_fp)
+    sub_io_class = determine_io(sub_nwb_fp)
+
+    print(main_nwb_fp)
+    print(sub_nwb_fp)
+    print(f"Saving merged file to: {output_path}")
+
+    with main_io_class(main_nwb_fp, "r") as main_io:
         main_nwb = main_io.read()
-        with sub_io(sub_nwb_fp, "r") as read_io:
-            sub_nwb = read_io.read()
+
+        with sub_io_class(sub_nwb_fp, "r") as sub_io:
+            sub_nwb = sub_io.read()
             main_nwb = get_nwb_attribute(main_nwb, sub_nwb)
-            with save_io(scratch_fp, "w") as io:
-                io.export(src_io=main_io, write_args=dict(link_data=False))
-    return scratch_fp
+
+            with save_io(output_path, "w") as out_io:
+                try:
+                    out_io.export(
+                        src_io=main_io, write_args=dict(link_data=False)
+                    )
+                except Exception as e:
+                    last_exception = e
+                    print(f"Failed to export NWB file: {e}")
+                    raise last_exception
+
+    return output_path
 
 
 def _get_session_start_date_time(session_start_date_string: str) -> datetime:
@@ -292,7 +478,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
         data_description["creation_time"]
     )
 
-    nwb_file = pynwb.NWBFile(
+    nwb_file = NdxEventsNWBFile(
         session_description="Base NWB file generated with subject metadata",
         identifier=str(uuid.uuid4()),
         session_start_time=session_start_date_time,
@@ -367,8 +553,7 @@ def get_ephys_devices_from_metadata(  # noqa: C901
     if ads_2:  # ADS > 2.0
         if acquisition is not None and instrument is not None:
             acquisition_schema_version = acquisition.get(
-                "schema_version",
-                None
+                "schema_version", None
             )
 
             if parse(acquisition_schema_version) >= parse("2.0.0"):
@@ -692,13 +877,9 @@ def get_ephys_devices_from_metadata(  # noqa: C901
                             "primary_targeted_structure"
                         )
                         if primary_targeted_structure is not None:
-                            if isinstance(
-                                primary_targeted_structure, dict
-                            ):
+                            if isinstance(primary_targeted_structure, dict):
                                 device_target_location = (
-                                    primary_targeted_structure.get(
-                                        "acronym"
-                                    )
+                                    primary_targeted_structure.get("acronym")
                                 )
                             else:
                                 device_target_location = (
