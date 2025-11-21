@@ -413,7 +413,7 @@ def get_subject_nwb_object(
         subject_details = subject_metadata["subject_details"]
         strain = subject_details["strain"]["name"]
     else:
-        logging.info("Found subject schema 2.0")
+        logging.info("Found subject schema version 1.0")
         subject_details = subject_metadata
         strain = subject_metadata.get(
             "background_strain"
