@@ -1,24 +1,22 @@
 """Example test template."""
 
 import datetime
-import tempfile
-import numpy as np
-
-from pynwb import TimeSeries
 import json
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, create_autospec
 
-from pynwb import NWBHDF5IO, NWBFile
-from pynwb.base import (
-    Images,
-    VectorData,
-    ProcessingModule,
-)  # example NWB container
-from pynwb.file import Device, Subject
-from pynwb.epoch import TimeIntervals
+import numpy as np
 from ndx_events import EventsTable
+from pynwb import NWBHDF5IO, NWBFile, TimeSeries
+from pynwb.base import (  # example NWB container
+    Images,
+    ProcessingModule,
+    VectorData,
+)
+from pynwb.epoch import TimeIntervals
+from pynwb.file import Device, Subject
 
 from aind_nwb_utils.nwb_io import determine_io
 from aind_nwb_utils.utils import (
@@ -445,6 +443,19 @@ class TestUtils(unittest.TestCase):
             data_description = json.load(f)
 
         with open(Path("tests/resources/subject.json"), "r") as f:
+            subject_metadata = json.load(f)
+
+        subject_object = get_subject_nwb_object(
+            data_description, subject_metadata
+        )
+        self.assertTrue(isinstance(subject_object, Subject))
+
+    def test_get_subject_nwb_object_2_0(self):
+        """Test get_subject_nwb_object with data schema 2.0 subject"""
+        with open(Path("tests/resources/data_description.json"), "r") as f:
+            data_description = json.load(f)
+
+        with open(Path("tests/resources/subject_2_0.json"), "r") as f:
             subject_metadata = json.load(f)
 
         subject_object = get_subject_nwb_object(
