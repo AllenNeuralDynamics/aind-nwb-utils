@@ -2,6 +2,7 @@
 
 import datetime
 import json
+import logging
 import uuid
 import warnings
 from datetime import datetime as dt
@@ -10,20 +11,18 @@ from typing import Any, Union
 
 import numpy as np
 import pynwb
-from pynwb import TimeSeries
-from pynwb.base import VectorData
 import pytz
 from hdmf_zarr import NWBZarrIO
-from packaging.version import parse
-from pynwb import NWBHDF5IO
-from pynwb.file import Device, Subject
-from aind_nwb_utils.nwb_io import determine_io
-
 from ndx_events import (
     EventsTable,
     NdxEventsNWBFile,
 )
-import logging
+from packaging.version import parse
+from pynwb import NWBHDF5IO, TimeSeries
+from pynwb.base import VectorData
+from pynwb.file import Device, Subject
+
+from aind_nwb_utils.nwb_io import determine_io
 
 logger = logging.getLogger(__name__)
 
@@ -409,8 +408,19 @@ def get_subject_nwb_object(
         species, sex, date of birth, and other experimental details.
     """
 
+    if parse(subject_metadata["schema_version"]) >= parse("2.0.0"):
+        logging.info("Found subject schema version 2.0")
+        subject_details = subject_metadata["subject_details"]
+        strain = subject_details["strain"]["name"]
+    else:
+        logging.info("Found subject schema version 1.0")
+        subject_details = subject_metadata
+        strain = subject_metadata.get(
+            "background_strain"
+        ) or subject_metadata.get("breeding_group")
+
     session_start_date_string = data_description["creation_time"]
-    dob = subject_metadata["date_of_birth"]
+    dob = subject_details["date_of_birth"]
     subject_dob = dt.strptime(dob, "%Y-%m-%d").replace(
         tzinfo=pytz.timezone("US/Pacific")
     )
@@ -422,21 +432,20 @@ def get_subject_nwb_object(
     subject_age = session_start_date_time - subject_dob
 
     age = "P" + str(subject_age.days) + "D"
-    if isinstance(subject_metadata["species"], dict):
-        species = subject_metadata["species"]["name"]
+    if isinstance(subject_details["species"], dict):
+        species = subject_details["species"]["name"]
     else:
         species = subject_metadata["species"]
 
     return Subject(
         subject_id=subject_metadata["subject_id"],
         species=species,
-        sex=subject_metadata["sex"][0].upper(),
+        sex=subject_details["sex"][0].upper(),
         date_of_birth=subject_dob,
         age=age,
-        genotype=subject_metadata["genotype"],
+        genotype=subject_details["genotype"],
         description=None,
-        strain=subject_metadata.get("background_strain")
-        or subject_metadata.get("breeding_group"),
+        strain=strain,
     )
 
 

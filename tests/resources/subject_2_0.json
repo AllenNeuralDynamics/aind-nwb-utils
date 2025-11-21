@@ -1,0 +1,44 @@
+{
+   "describedBy": "https://raw.githubusercontent.com/AllenNeuralDynamics/aind-data-schema/main/src/aind_data_schema/core/subject.py",
+   "notes": null,
+   "object_type": "Subject",
+   "schema_version": "2.0.13",
+   "subject_details": {
+      "alleles": [],
+      "breeding_info": null,
+      "date_of_birth": "2025-07-29",
+      "genotype": "wt/wt",
+      "housing": {
+         "cage_id": "8309947",
+         "cohoused_subjects": [],
+         "home_cage_enrichment": [],
+         "light_cycle": null,
+         "object_type": "Housing",
+         "room_id": "221"
+      },
+      "object_type": "Mouse subject",
+      "restrictions": null,
+      "rrid": null,
+      "sex": "Female",
+      "source": {
+         "abbreviation": "UNKNOWN",
+         "name": "Unknown",
+         "registry": null,
+         "registry_identifier": null
+      },
+      "species": {
+         "common_name": "House mouse",
+         "name": "Mus musculus",
+         "registry": "National Center for Biotechnology Information (NCBI)",
+         "registry_identifier": "NCBI:txid10090"
+      },
+      "strain": {
+         "name": "Unknown",
+         "registry": null,
+         "registry_identifier": null,
+         "species": "Mus musculus"
+      },
+      "wellness_reports": []
+   },
+   "subject_id": "828425"
+}
