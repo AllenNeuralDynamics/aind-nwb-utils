@@ -2,6 +2,7 @@
 
 import datetime
 import json
+import logging
 import uuid
 import warnings
 from datetime import datetime as dt
@@ -10,20 +11,18 @@ from typing import Any, Union
 
 import numpy as np
 import pynwb
-from pynwb import TimeSeries
-from pynwb.base import VectorData
 import pytz
 from hdmf_zarr import NWBZarrIO
-from packaging.version import parse
-from pynwb import NWBHDF5IO
-from pynwb.file import Device, Subject
-from aind_nwb_utils.nwb_io import determine_io
-
 from ndx_events import (
     EventsTable,
     NdxEventsNWBFile,
 )
-import logging
+from packaging.version import parse
+from pynwb import NWBHDF5IO, TimeSeries
+from pynwb.base import VectorData
+from pynwb.file import Device, Subject
+
+from aind_nwb_utils.nwb_io import determine_io
 
 logger = logging.getLogger(__name__)
 
@@ -416,7 +415,9 @@ def get_subject_nwb_object(
     else:
         logging.info("Found subject schema 2.0")
         subject_details = subject_metadata
-        strain = subject_metadata.get("background_strain") or subject_metadata.get("breeding_group")
+        strain = subject_metadata.get(
+            "background_strain"
+        ) or subject_metadata.get("breeding_group")
 
     session_start_date_string = data_description["creation_time"]
     dob = subject_details["date_of_birth"]
