@@ -344,6 +344,49 @@ def combine_nwb_file(
     return output_path
 
 
+def combine_nwb_file_objects(
+    main_nwb_fp: Path,
+    sub_nwb_fp: Path,
+    save_io: Union[NWBHDF5IO, NWBZarrIO],
+) -> pynwb.NWBFile:
+    """
+    Combine two NWB files by merging attributes from a
+    secondary file into a main nwb object.
+
+    Parameters
+    ----------
+    main_nwb_fp : Path
+        Path to the main NWB file.
+    sub_nwb_fp : Path
+        Path to the secondary NWB file whose data will be merged.
+    output_path : Path
+        Path to write the merged NWB file.
+    save_io : Union[NWBHDF5IO, NWBZarrIO]
+        IO class used to write the resulting NWB file.
+
+    Returns
+    -------
+    Path
+        Path to the saved combined NWB file.
+    """
+    main_io_class = determine_io(main_nwb_fp)
+    sub_io_class = determine_io(sub_nwb_fp)
+
+    print(main_nwb_fp)
+    print(sub_nwb_fp)
+    print(f"Saving merged file to: {output_path}")
+
+    with main_io_class(main_nwb_fp, "r") as main_io:
+        main_nwb = main_io.read()
+
+        with sub_io_class(sub_nwb_fp, "r") as sub_io:
+            sub_nwb = sub_io.read()
+            main_nwb = get_nwb_attribute(main_nwb, sub_nwb)
+
+        
+
+            return main_nwb
+
 def _get_session_start_date_time(session_start_date_string: str) -> datetime:
     """
     Returns the datetime given the string
