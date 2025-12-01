@@ -347,7 +347,6 @@ def combine_nwb_file(
 def combine_nwb_file_objects(
     main_nwb_fp: Path,
     sub_nwb_fp: Path,
-    save_io: Union[NWBHDF5IO, NWBZarrIO],
 ) -> pynwb.NWBFile:
     """
     Combine two NWB files by merging attributes from a
@@ -381,9 +380,8 @@ def combine_nwb_file_objects(
             sub_nwb = sub_io.read()
             main_nwb = get_nwb_attribute(main_nwb, sub_nwb)
 
-        
-
             return main_nwb
+
 
 def _get_session_start_date_time(session_start_date_string: str) -> datetime:
     """
