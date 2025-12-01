@@ -374,8 +374,6 @@ def combine_nwb_file_objects(
 
     print(main_nwb_fp)
     print(sub_nwb_fp)
-    print(f"Saving merged file to: {output_path}")
-
     with main_io_class(main_nwb_fp, "r") as main_io:
         main_nwb = main_io.read()
 
