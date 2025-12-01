@@ -254,7 +254,7 @@ def _handle_dict_like_attributes(
         add_data(main_io, field_name, name, data)
 
 
-def get_nwb_attribute(
+def merge_nwb_attribute(
     main_io: Union[NWBHDF5IO, NWBZarrIO], sub_io: Union[NWBHDF5IO, NWBZarrIO]
 ) -> Union[NWBHDF5IO, NWBZarrIO]:
     """
@@ -329,7 +329,7 @@ def combine_nwb_file(
 
         with sub_io_class(sub_nwb_fp, "r") as sub_io:
             sub_nwb = sub_io.read()
-            main_nwb = get_nwb_attribute(main_nwb, sub_nwb)
+            main_nwb = merge_nwb_attribute(main_nwb, sub_nwb)
 
             with save_io(output_path, "w") as out_io:
                 try:
@@ -378,7 +378,7 @@ def combine_nwb_file_objects(
 
         with sub_io_class(sub_nwb_fp, "r") as sub_io:
             sub_nwb = sub_io.read()
-            main_nwb = get_nwb_attribute(main_nwb, sub_nwb)
+            main_nwb = merge_nwb_attribute(main_nwb, sub_nwb)
 
             return main_nwb
 
