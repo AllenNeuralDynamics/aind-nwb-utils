@@ -523,12 +523,12 @@ def open_metadata_jsons(
     for path in metadata_paths:
 
         # Schema inference (do NOT require both to exist)
-        if path.stem() == "acquisition":
+        if path.stem == "acquisition":
             if not path.exists():
                 ads_2 = False
                 continue
 
-        if path.stem() == "session":
+        if path.stem == "session":
             if path.exists():
                 ads_2 = False
 
