@@ -524,12 +524,12 @@ def open_metadata_jsons(
         path_str = str(path)
 
         # Schema inference (do NOT require both to exist)
-        if "acquisition.json" in path_str:
+        if path_str.stem() == "acquisition"
             if not path.exists():
                 ads_2 = False
                 continue
 
-        if "session.json" in path_str:
+        if path_str.stem() == "session":
             if path.exists():
                 ads_2 = False
 
