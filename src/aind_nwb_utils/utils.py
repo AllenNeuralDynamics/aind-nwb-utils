@@ -7,7 +7,7 @@ import uuid
 import warnings
 from datetime import datetime as dt
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Union, Iterable
 
 import numpy as np
 import pynwb
@@ -488,6 +488,85 @@ def get_subject_nwb_object(
     )
 
 
+def open_metadata_jsons(
+    metadata_paths: Iterable[Path],
+) -> tuple[dict[Path, dict[str, Any]], bool]:
+    """
+    Opens multiple metadata json files and returns their keyed contents.
+    Also infers whether the session uses AIND Data Schema v2.
+
+    Parameters
+    ----------
+    metadata_paths : Iterable[Path]
+        Paths to metadata json files.
+
+    Returns
+    -------
+    tuple[dict[Path, dict[str, Any]], bool]
+        - Mapping of path to metadata contents
+        - Boolean indicating ADS v2 (True) or v1.x (False)
+    """
+    metadata_map: dict[Path, dict[str, Any]] = {}
+
+    # Default assumption
+    ads_2 = True
+
+    ads_2_unique_files = [
+        "acquisition.json",
+        "instrument.json",
+    ]
+    ads_1_unique_files = [
+        "session.json",
+        "rig.json",
+    ]
+
+    for path in metadata_paths:
+
+        # Schema inference (do NOT require both to exist)
+        if path.stem == "acquisition":
+            if not path.exists():
+                ads_2 = False
+                continue
+
+        if path.stem == "session":
+            if path.exists():
+                ads_2 = False
+
+        if not path.exists():
+            if ads_2 and path.name in ads_2_unique_files:
+                raise FileNotFoundError(f"No metadata json found at {path}")
+            if not ads_2 and path.name in ads_1_unique_files:
+                raise FileNotFoundError(f"No metadata json found at {path}")
+
+        with open(path, "r") as f:
+            metadata_map[path] = json.load(f)
+
+    return metadata_map, ads_2
+
+
+def open_metadata_json(metadata_path: Path) -> dict[str, Any]:
+    """
+    Opens a metadata json file and returns its contents as a dictionary.
+
+    Parameters
+    ----------
+    metadata_path : Path
+        The path to the metadata json file.
+
+    Returns
+    -------
+    dict[str, Any]
+        The contents of the metadata json file as a dictionary.
+    """
+    if not metadata_path.exists():
+        raise FileNotFoundError(f"No metadata json found at {metadata_path}")
+
+    with open(metadata_path, "r") as f:
+        metadata = json.load(f)
+
+    return metadata
+
+
 def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     """
     Creates the base nwb file given the path to the metadata files
@@ -504,35 +583,90 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     """
     data_description_path = data_path / "data_description.json"
     subject_json_path = data_path / "subject.json"
+    procedures_json_path = data_path / "procedures.json"
+    processing_json_path = data_path / "processing.json"
+    session_json_path = data_path / "session.json"
+    acquisition_json_path = data_path / "acquisition.json"
+    metadata_map, ads_2 = open_metadata_jsons(
+        [
+            data_description_path,
+            subject_json_path,
+            procedures_json_path,
+            processing_json_path,
+            session_json_path,
+            acquisition_json_path,
+        ]
+    )
 
-    if not data_description_path.exists():
-        raise FileNotFoundError(
-            f"No data description json found at {data_description_path}"
-        )
+    data_description = metadata_map[data_description_path]
+    subject_metadata = metadata_map[subject_json_path]
+    procedures_metadata = metadata_map[procedures_json_path]
+    processing_metadata = metadata_map[processing_json_path]
+    if ads_2:
+        logging.info("Found AIND data schema version 2.x metadata files")
+        session_metadata = metadata_map[acquisition_json_path]
 
-    if not subject_json_path.exists():
-        raise FileNotFoundError(
-            f"No subject json found at {subject_json_path}"
-        )
-
-    with open(data_description_path, "r") as f:
-        data_description = json.load(f)
-
-    with open(subject_json_path, "r") as f:
-        subject_metadata = json.load(f)
-
-    nwb_subject = get_subject_nwb_object(data_description, subject_metadata)
+    else:
+        session_metadata = metadata_map[session_json_path]
+    nwb_subject = get_subject_nwb_object(
+        data_description, subject_metadata
+    )
     session_start_date_time = _get_session_start_date_time(
         data_description["creation_time"]
     )
+    experimenters = []
+    for procedure in procedures_metadata.get("subject_procedures", []):
+        experimenters.append(procedure.get("experimenter_full_name"))
+
+    if data_description.get("investigators") is not None:
+        for investigator in data_description.get("investigators", []):
+            full_name = investigator.get("name", "No Experimenter Name")
+            experimenters.append(full_name)
+
+    generation_code = []
+    processing_pipeline = processing_metadata.get("processing_pipeline", {})
+    if (
+        processing_pipeline.get("data_processes")
+        is not None
+    ):
+        for process in processing_pipeline.get(
+            "data_processes", "Unknown"
+        ):
+            generation_code.append(process.get("code"))
+
+    experiment_description = ""
+    project_name = data_description.get("project", "Unknown Project")
+    session_type = session_metadata.get("session_type", "No specified")
+    modalities = []
+
+    if data_description.get("modality") is not None:
+        for modality in data_description.get("modality", []):
+            modalities.append(modality.get("name", ""))
+
+    experiment_description = (
+        "A "
+        + project_name
+        + " "
+        + " experiment performed using "
+        + session_type
+        + " behavior. "
+    )
+
+    if len(modalities) > 0:
+        experiment_description += (
+            "Experiment includes " + ", ".join(modalities) + " modalities."
+        )
 
     nwb_file = NdxEventsNWBFile(
-        session_description="Base NWB file generated with subject metadata",
+        session_description=experiment_description,
         identifier=str(uuid.uuid4()),
         session_start_time=session_start_date_time,
         institution=data_description["institution"].get("name", None),
         subject=nwb_subject,
         session_id=data_description["name"],
+        experimenter=str(experimenters),
+        was_generated_by=generation_code,
+        lab=data_description.get("group", ""),
     )
 
     return nwb_file
