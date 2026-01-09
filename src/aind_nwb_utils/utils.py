@@ -586,7 +586,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
         subject=nwb_subject,
         session_id=data_description["name"],
         experimenter=str(experimenters),
-        was_generated_by=str(generation_code),
+        was_generated_by=generation_code,
         lab=data_description.get("group", ""),
     )
 
