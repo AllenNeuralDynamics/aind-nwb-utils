@@ -7,7 +7,7 @@ import uuid
 import warnings
 from datetime import datetime as dt
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Union, Iterable
 
 import numpy as np
 import pynwb
@@ -487,6 +487,58 @@ def get_subject_nwb_object(
         strain=strain,
     )
 
+def open_metadata_jsons(
+    metadata_paths: Iterable[Path],
+) -> tuple[dict[Path, dict[str, Any]], bool]:
+    """
+    Opens multiple metadata json files and returns their contents keyed by path.
+    Also infers whether the session uses AIND Data Schema v2.
+
+    Parameters
+    ----------
+    metadata_paths : Iterable[Path]
+        Paths to metadata json files.
+
+    Returns
+    -------
+    tuple[dict[Path, dict[str, Any]], bool]
+        - Mapping of path to metadata contents
+        - Boolean indicating ADS v2 (True) or v1.x (False)
+    """
+    metadata_map: dict[Path, dict[str, Any]] = {}
+
+    # Default assumption
+    ads_2 = True
+
+    for path in metadata_paths:
+        path_str = str(path)
+
+        # Schema inference (do NOT require both to exist)
+        if "acquisition.json" in path_str:
+            if not path.exists():
+                ads_2 = False
+                continue
+
+        if "session.json" in path_str:
+            if path.exists():
+                ads_2 = False
+
+
+        if not path.exists():
+            if ads_2 and "session.json" in path_str:
+                continue  # allowed missing file for ADS v2
+            if not ads_2 and "acquisition.json" in path_str:
+                continue  # allowed missing file for ADS v1.x
+            if not ads_2 and "instrument.json" in path_str:
+                continue  # allowed missing file for ADS v2
+            if ads_2 and "rig.json" in path_str:
+                continue  # allowed missing file for ADS v1.x
+            raise FileNotFoundError(f"No metadata json found at {path}")
+
+        with open(path, "r") as f:
+            metadata_map[path] = json.load(f)
+
+    return metadata_map, ads_2
 
 def open_metadata_json(metadata_path: Path) -> dict[str, Any]:
     """
@@ -530,14 +582,27 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     procedures_json_path = data_path / "procedures.json"
     processing_json_path = data_path / "processing.json"
     session_json_path = data_path / "session.json"
+    acquisition_json_path = data_path / "acquisition.json"
+    metadata_map, ads_2 = open_metadata_jsons([
+        data_description_path,
+        subject_json_path,
+        procedures_json_path,
+        processing_json_path,
+        session_json_path,
+        acquisition_json_path,
+    ])
 
-    data_description = open_metadata_json(data_description_path)
-    subject_metadata = open_metadata_json(subject_json_path)
-    procedures_metadata = open_metadata_json(procedures_json_path)
-    processing_metadata = open_metadata_json(processing_json_path)
-    session_metadata = open_metadata_json(session_json_path)
+    data_description = metadata_map[data_description_path]
+    subject_metadata = metadata_map[subject_json_path]
+    procedures_metadata = metadata_map[procedures_json_path]
+    processing_metadata = metadata_map[processing_json_path]
+    if ads_2:
+        logging.info("Found AIND data schema version 2.x metadata files")
+        session_metadata = metadata_map[acquisition_json_path]
 
-    nwb_subject = get_subject_nwb_object(data_description, subject_metadata)
+    else:
+        session_metadata = metadata_map[session_json_path]
+    nwb_subject = get_subject_nwb_object(data_description, subject_metadata, ads_2)
     session_start_date_time = _get_session_start_date_time(
         data_description["creation_time"]
     )
