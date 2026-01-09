@@ -1,0 +1,13 @@
+{
+   "analyses": [],
+   "describedBy": "https://raw.githubusercontent.com/AllenNeuralDynamics/aind-data-schema/main/src/aind_data_schema/core/processing.py",
+   "notes": null,
+   "processing_pipeline": {
+      "data_processes": [],
+      "note": null,
+      "pipeline_url": null,
+      "pipeline_version": null,
+      "processor_full_name": "AIND Scientific Computing"
+   },
+   "schema_version": "1.1.1"
+}

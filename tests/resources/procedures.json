@@ -1,0 +1,128 @@
+{
+   "describedBy": "https://raw.githubusercontent.com/AllenNeuralDynamics/aind-data-schema/main/src/aind_data_schema/core/procedures.py",
+   "notes": null,
+   "schema_version": "1.1.1",
+   "specimen_procedures": [],
+   "subject_id": "744779",
+   "subject_procedures": [
+      {
+         "anaesthesia": {
+            "duration": "120.0",
+            "duration_unit": "minute",
+            "level": "1.5",
+            "type": "isoflurane"
+         },
+         "animal_weight_post": "20.5",
+         "animal_weight_prior": "19.0",
+         "experimenter_full_name": "NSB-6894",
+         "iacuc_protocol": "2109",
+         "notes": null,
+         "procedure_type": "Surgery",
+         "procedures": [
+            {
+               "headframe_material": null,
+               "headframe_part_number": null,
+               "headframe_type": null,
+               "procedure_type": "Headframe",
+               "protocol_id": null,
+               "well_part_number": null,
+               "well_type": null
+            },
+            {
+               "bregma_to_lambda_distance": null,
+               "bregma_to_lambda_unit": "millimeter",
+               "injection_angle": "0.0",
+               "injection_angle_unit": "degrees",
+               "injection_coordinate_ap": "-5.4",
+               "injection_coordinate_depth": [
+                  "3.2",
+                  "2.9"
+               ],
+               "injection_coordinate_ml": "-0.85",
+               "injection_coordinate_reference": "Bregma",
+               "injection_coordinate_unit": "millimeter",
+               "injection_duration": null,
+               "injection_duration_unit": "minute",
+               "injection_hemisphere": "Left",
+               "injection_materials": [
+                  {
+                     "addgene_id": null,
+                     "material_type": "Virus",
+                     "name": "NA",
+                     "tars_identifiers": {
+                        "plasmid_tars_alias": null,
+                        "prep_date": "2024-05-08",
+                        "prep_lot_number": "VT7354G",
+                        "prep_protocol": "SOP#VC003",
+                        "prep_type": "Purified",
+                        "virus_tars_id": "AiV300006_PHPeB"
+                     },
+                     "titer": 4010000000000,
+                     "titer_unit": "gc/mL"
+                  }
+               ],
+               "injection_volume": [
+                  "300.0",
+                  "300.0"
+               ],
+               "injection_volume_unit": "nanoliter",
+               "instrument_id": null,
+               "procedure_type": "Nanoject injection",
+               "protocol_id": "dx.doi.org/10.17504/protocols.io.bp2l6nr7kgqe/v4",
+               "recovery_time": "10.0",
+               "recovery_time_unit": "minute",
+               "targeted_structure": null
+            },
+            {
+               "bregma_to_lambda_distance": null,
+               "bregma_to_lambda_unit": "millimeter",
+               "injection_angle": "0.0",
+               "injection_angle_unit": "degrees",
+               "injection_coordinate_ap": "-5.4",
+               "injection_coordinate_depth": [
+                  "3.2",
+                  "2.9"
+               ],
+               "injection_coordinate_ml": "0.85",
+               "injection_coordinate_reference": "Bregma",
+               "injection_coordinate_unit": "millimeter",
+               "injection_duration": null,
+               "injection_duration_unit": "minute",
+               "injection_hemisphere": "Right",
+               "injection_materials": [
+                  {
+                     "addgene_id": null,
+                     "material_type": "Virus",
+                     "name": "NA",
+                     "tars_identifiers": {
+                        "plasmid_tars_alias": null,
+                        "prep_date": "2024-05-08",
+                        "prep_lot_number": "VT7354G",
+                        "prep_protocol": "SOP#VC003",
+                        "prep_type": "Purified",
+                        "virus_tars_id": "AiV300006_PHPeB"
+                     },
+                     "titer": 4010000000000,
+                     "titer_unit": "gc/mL"
+                  }
+               ],
+               "injection_volume": [
+                  "300.0",
+                  "300.0"
+               ],
+               "injection_volume_unit": "nanoliter",
+               "instrument_id": null,
+               "procedure_type": "Nanoject injection",
+               "protocol_id": "dx.doi.org/10.17504/protocols.io.bp2l6nr7kgqe/v4",
+               "recovery_time": "10.0",
+               "recovery_time_unit": "minute",
+               "targeted_structure": null
+            }
+         ],
+         "protocol_id": "dx.doi.org/10.17504/protocols.io.kqdg392o7g25/v2",
+         "start_date": "2024-07-23",
+         "weight_unit": "gram",
+         "workstation_id": "SWS 4"
+      }
+   ]
+}
