@@ -504,6 +504,9 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     """
     data_description_path = data_path / "data_description.json"
     subject_json_path = data_path / "subject.json"
+    procedures_json_path = data_path / "procedures.json"
+    processing_json_path = data_path / "processing.json"
+    session_json_path = data_path / "session.json"
 
     if not data_description_path.exists():
         raise FileNotFoundError(
@@ -521,18 +524,66 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     with open(subject_json_path, "r") as f:
         subject_metadata = json.load(f)
 
+    with open(procedures_json_path, "r") as f:
+        procedures_metadata = json.load(f)
+
+    with open(processing_json_path, "r") as f:
+        processing_metadata = json.load(f)
+
+    with open(session_json_path, "r") as f:
+        session_metadata = json.load(f)
+
     nwb_subject = get_subject_nwb_object(data_description, subject_metadata)
     session_start_date_time = _get_session_start_date_time(
         data_description["creation_time"]
     )
+    experimenters = []
+    for procedure in procedures_metadata.get("subject_procedures", []):
+        if procedure.get("experimenter_full_name") is not None:
+            experimenters.append(
+                procedure.get("experimenter_full_name")
+            )
+    if data_description.get("investigators") is not None:
+        for investigator in data_description.get("investigators", []):
+            full_name = investigator.get("name", None)
+            if full_name is not None:
+                experimenters.append(full_name)
+
+    generation_code = []
+    if processing_metadata.get("data_processes") is not None:
+        for process in processing_metadata.get("data_processes", []):
+            if process.get("code") is not None:
+                generation_code.append(process.get("code"))
+
+    experiment_description = ""
+    project_name = data_description.get("project", "Unknown Project")
+    session_type = session_metadata.get("session_type", "No specified")
+    modalities = []
+
+    if data_description.get("modality") is not None:
+        for modality in data_description.get("modality", []):
+            modalities.append(modality.get("name", ""))
+
+    experiment_description = "A " + project_name + " "  + \
+          " experiment performed using " + session_type + " behavior. "
+
+    if len(modalities) > 0:
+        experiment_description += "Experiment includes " + ", ".join(modalities) + " modalities."
+
+
+
+
 
     nwb_file = NdxEventsNWBFile(
-        session_description="Base NWB file generated with subject metadata",
+        session_description=experiment_description,
         identifier=str(uuid.uuid4()),
         session_start_time=session_start_date_time,
         institution=data_description["institution"].get("name", None),
         subject=nwb_subject,
         session_id=data_description["name"],
+        experimenter=str(experimenters),
+        was_generated_by=str(generation_code),
+        lab = data_description.get("group", "")
     )
 
     return nwb_file
