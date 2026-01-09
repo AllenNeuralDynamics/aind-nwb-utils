@@ -488,6 +488,29 @@ def get_subject_nwb_object(
     )
 
 
+def open_metadata_json(metadata_path: Path) -> dict[str, Any]:
+    """
+    Opens a metadata json file and returns its contents as a dictionary.
+
+    Parameters
+    ----------
+    metadata_path : Path
+        The path to the metadata json file.
+
+    Returns
+    -------
+    dict[str, Any]
+        The contents of the metadata json file as a dictionary.
+    """
+    if not metadata_path.exists():
+        raise FileNotFoundError(f"No metadata json found at {metadata_path}")
+
+    with open(metadata_path, "r") as f:
+        metadata = json.load(f)
+
+    return metadata
+
+
 def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     """
     Creates the base nwb file given the path to the metadata files
@@ -508,30 +531,11 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     processing_json_path = data_path / "processing.json"
     session_json_path = data_path / "session.json"
 
-    if not data_description_path.exists():
-        raise FileNotFoundError(
-            f"No data description json found at {data_description_path}"
-        )
-
-    if not subject_json_path.exists():
-        raise FileNotFoundError(
-            f"No subject json found at {subject_json_path}"
-        )
-
-    with open(data_description_path, "r") as f:
-        data_description = json.load(f)
-
-    with open(subject_json_path, "r") as f:
-        subject_metadata = json.load(f)
-
-    with open(procedures_json_path, "r") as f:
-        procedures_metadata = json.load(f)
-
-    with open(processing_json_path, "r") as f:
-        processing_metadata = json.load(f)
-
-    with open(session_json_path, "r") as f:
-        session_metadata = json.load(f)
+    data_description = open_metadata_json(data_description_path)
+    subject_metadata = open_metadata_json(subject_json_path)
+    procedures_metadata = open_metadata_json(procedures_json_path)
+    processing_metadata = open_metadata_json(processing_json_path)
+    session_metadata = open_metadata_json(session_json_path)
 
     nwb_subject = get_subject_nwb_object(data_description, subject_metadata)
     session_start_date_time = _get_session_start_date_time(
@@ -539,21 +543,17 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     )
     experimenters = []
     for procedure in procedures_metadata.get("subject_procedures", []):
-        if procedure.get("experimenter_full_name") is not None:
-            experimenters.append(
-                procedure.get("experimenter_full_name")
-            )
+        experimenters.append(procedure.get("experimenter_full_name"))
+
     if data_description.get("investigators") is not None:
         for investigator in data_description.get("investigators", []):
-            full_name = investigator.get("name", None)
-            if full_name is not None:
-                experimenters.append(full_name)
+            full_name = investigator.get("name", "No Experimenter Name")
+            experimenters.append(full_name)
 
     generation_code = []
     if processing_metadata.get("data_processes") is not None:
-        for process in processing_metadata.get("data_processes", []):
-            if process.get("code") is not None:
-                generation_code.append(process.get("code"))
+        for process in processing_metadata.get("data_processes", "Unknown"):
+            generation_code.append(process.get("code"))
 
     experiment_description = ""
     project_name = data_description.get("project", "Unknown Project")
@@ -564,15 +564,19 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
         for modality in data_description.get("modality", []):
             modalities.append(modality.get("name", ""))
 
-    experiment_description = "A " + project_name + " "  + \
-          " experiment performed using " + session_type + " behavior. "
+    experiment_description = (
+        "A "
+        + project_name
+        + " "
+        + " experiment performed using "
+        + session_type
+        + " behavior. "
+    )
 
     if len(modalities) > 0:
-        experiment_description += "Experiment includes " + ", ".join(modalities) + " modalities."
-
-
-
-
+        experiment_description += (
+            "Experiment includes " + ", ".join(modalities) + " modalities."
+        )
 
     nwb_file = NdxEventsNWBFile(
         session_description=experiment_description,
@@ -583,7 +587,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
         session_id=data_description["name"],
         experimenter=str(experimenters),
         was_generated_by=str(generation_code),
-        lab = data_description.get("group", "")
+        lab=data_description.get("group", ""),
     )
 
     return nwb_file
