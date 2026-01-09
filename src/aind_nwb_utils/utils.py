@@ -625,8 +625,14 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
             experimenters.append(full_name)
 
     generation_code = []
-    if processing_metadata.get("data_processes") is not None:
-        for process in processing_metadata.get("data_processes", "Unknown"):
+    processing_pipeline = processing_metadata.get("processing_pipeline", {})
+    if (
+        processing_pipeline.get("data_processes")
+        is not None
+    ):
+        for process in processing_pipeline.get(
+            "data_processes", "Unknown"
+        ):
             generation_code.append(process.get("code"))
 
     experiment_description = ""
