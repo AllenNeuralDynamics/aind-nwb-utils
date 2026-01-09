@@ -524,7 +524,7 @@ def open_metadata_jsons(
         path_str = str(path)
 
         # Schema inference (do NOT require both to exist)
-        if path_str.stem() == "acquisition"
+        if path_str.stem() == "acquisition":
             if not path.exists():
                 ads_2 = False
                 continue
