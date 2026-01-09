@@ -487,11 +487,12 @@ def get_subject_nwb_object(
         strain=strain,
     )
 
+
 def open_metadata_jsons(
     metadata_paths: Iterable[Path],
 ) -> tuple[dict[Path, dict[str, Any]], bool]:
     """
-    Opens multiple metadata json files and returns their contents keyed by path.
+    Opens multiple metadata json files and returns their keyed contents.
     Also infers whether the session uses AIND Data Schema v2.
 
     Parameters
@@ -510,6 +511,15 @@ def open_metadata_jsons(
     # Default assumption
     ads_2 = True
 
+    ads_2_unique_files = [
+        "acquisition.json",
+        "instrument.json",
+    ]
+    ads_1_unique_files = [
+        "session.json",
+        "rig.json",
+    ]
+
     for path in metadata_paths:
         path_str = str(path)
 
@@ -523,22 +533,17 @@ def open_metadata_jsons(
             if path.exists():
                 ads_2 = False
 
-
         if not path.exists():
-            if ads_2 and "session.json" in path_str:
-                continue  # allowed missing file for ADS v2
-            if not ads_2 and "acquisition.json" in path_str:
-                continue  # allowed missing file for ADS v1.x
-            if not ads_2 and "instrument.json" in path_str:
-                continue  # allowed missing file for ADS v2
-            if ads_2 and "rig.json" in path_str:
-                continue  # allowed missing file for ADS v1.x
-            raise FileNotFoundError(f"No metadata json found at {path}")
+            if ads_2 and path.name in ads_2_unique_files:
+                raise FileNotFoundError(f"No metadata json found at {path}")
+            if not ads_2 and path.name in ads_1_unique_files:
+                raise FileNotFoundError(f"No metadata json found at {path}")
 
         with open(path, "r") as f:
             metadata_map[path] = json.load(f)
 
     return metadata_map, ads_2
+
 
 def open_metadata_json(metadata_path: Path) -> dict[str, Any]:
     """
@@ -583,14 +588,16 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     processing_json_path = data_path / "processing.json"
     session_json_path = data_path / "session.json"
     acquisition_json_path = data_path / "acquisition.json"
-    metadata_map, ads_2 = open_metadata_jsons([
-        data_description_path,
-        subject_json_path,
-        procedures_json_path,
-        processing_json_path,
-        session_json_path,
-        acquisition_json_path,
-    ])
+    metadata_map, ads_2 = open_metadata_jsons(
+        [
+            data_description_path,
+            subject_json_path,
+            procedures_json_path,
+            processing_json_path,
+            session_json_path,
+            acquisition_json_path,
+        ]
+    )
 
     data_description = metadata_map[data_description_path]
     subject_metadata = metadata_map[subject_json_path]
@@ -602,7 +609,9 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
 
     else:
         session_metadata = metadata_map[session_json_path]
-    nwb_subject = get_subject_nwb_object(data_description, subject_metadata, ads_2)
+    nwb_subject = get_subject_nwb_object(
+        data_description, subject_metadata, ads_2
+    )
     session_start_date_time = _get_session_start_date_time(
         data_description["creation_time"]
     )
