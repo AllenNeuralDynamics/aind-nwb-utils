@@ -610,7 +610,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     else:
         session_metadata = metadata_map[session_json_path]
     nwb_subject = get_subject_nwb_object(
-        data_description, subject_metadata, ads_2
+        data_description, subject_metadata
     )
     session_start_date_time = _get_session_start_date_time(
         data_description["creation_time"]
