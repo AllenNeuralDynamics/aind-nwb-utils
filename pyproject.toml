@@ -20,7 +20,8 @@ dependencies = [
     'pynwb',
     'ndx-events',
     'hdmf-zarr',
-    'xarray'
+    'xarray',
+    'pytz'
 ]
 
 [project.optional-dependencies]
