@@ -669,6 +669,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
         lab=data_description.get("group", ""),
     )
 
+    nwb_file.was_generated_by = generation_code
     return nwb_file
 
 
