@@ -48,6 +48,7 @@ def is_non_mergeable(attr: Any):
             str,
             datetime.datetime,
             list,
+            tuple,
             pynwb.file.Subject,
         ),
     )
