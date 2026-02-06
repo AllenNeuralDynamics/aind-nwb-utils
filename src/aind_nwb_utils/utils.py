@@ -339,7 +339,7 @@ def combine_nwb(
             with save_io(output_path, "w") as out_io:
                 try:
                     out_io.export(
-                        src_io=main_io, write_args=dict(link_data=False)
+                        src_io=main_io, nwbfile=main_nwb, write_args=dict(link_data=False)
                     )
                 except Exception as e:
                     last_exception = e
