@@ -26,7 +26,7 @@ from aind_nwb_utils.utils import (
     add_data,
     cast_timeseries_if_needed,
     cast_vectordata_if_needed,
-    combine_nwb_file,
+    combine_nwb,
     create_base_nwb_file,
     get_ephys_devices_from_metadata,
     get_subject_nwb_object,
@@ -143,13 +143,9 @@ class TestUtils(unittest.TestCase):
     def test_get_nwb_attribute(self):
         """Test get_nwb_attribute function"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            output_path = Path(tmpdir) / "test.nwb"
-            result = combine_nwb_file(
-                self.behavior_fp, self.eye_tracking_fp, output_path, NWBHDF5IO
+            result_nwb = combine_nwb(
+                self.behavior_fp, [self.eye_tracking_fp]
             )
-            result_io = determine_io(result)
-            with result_io(result, "r") as io:
-                result_nwb = io.read()
             eye_io = determine_io(self.eye_tracking_fp)
             with eye_io(self.eye_tracking_fp, "r") as io:
                 eye_nwb = io.read()
@@ -158,11 +154,10 @@ class TestUtils(unittest.TestCase):
     def test_combine_nwb_file(self):
         """Test combine_nwb_file function"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            output_path = Path(tmpdir) / "test.nwb"
-            result_fp = combine_nwb_file(
-                self.behavior_fp, self.eye_tracking_fp, output_path, NWBHDF5IO
+            result = combine_nwb(
+                self.behavior_fp, [self.eye_tracking_fp]
             )
-            self.assertTrue(result_fp.exists())
+            self.assertTrue(isinstance(result, NWBFile))
 
     def test_cast_timeseries_if_needed_float64_to_float32(self):
         """Test casting float64 TimeSeries data to float32"""
