@@ -328,6 +328,9 @@ def combine_nwb(
             main_nwb = merge_nwb_attribute(main_nwb, sub_nwb)
 
         if output_path:
+            logger.info(
+                f"Output path specified. Writing to disk at {output_path}"
+            )
             with main_io_class(output_path, "w") as save_io:
                 try:
                     save_io.export(
