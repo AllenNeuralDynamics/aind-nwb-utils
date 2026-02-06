@@ -293,6 +293,7 @@ def merge_nwb_attribute(
 
 def save_nwb_to_disk(
     nwb: pynwb.NWBFile,
+    main_io: Union[NWBHDF5IO, NWBZarrIO],
     output_path: Path,
     save_io: Union[NWBHDF5IO, NWBZarrIO],
 ) -> None:
@@ -303,6 +304,8 @@ def save_nwb_to_disk(
     ----------
     nwb: pynwb.NWBFile
         The nwb file to write to disk
+    main_io: Union[NWBHDF5IO, NWBZarrIO]
+        IO class for nwb file
     output_path : Path
         Path to write the merged NWB file.
     save_io : Union[NWBHDF5IO, NWBZarrIO]
@@ -315,7 +318,7 @@ def save_nwb_to_disk(
     with save_io(output_path, "w") as out_io:
         try:
             out_io.export(
-                src_io=save_io, nwbfile=nwb, write_args=dict(link_data=False)
+                src_io=main_io, nwbfile=nwb, write_args=dict(link_data=False)
             )
         except Exception as e:
             last_exception = e
@@ -326,7 +329,7 @@ def save_nwb_to_disk(
 def combine_nwb(
     main_nwb_fp: Path,
     sub_nwb_fp: Path,
-) -> pynwb.NWBFile:
+) -> tuple[pynwb.NWBFile, Union[NWBHDF5IO, NWBZarrIO]]:
     """
     Combine two NWB files by merging attributes from a
     secondary file into a main nwb object.
@@ -344,8 +347,9 @@ def combine_nwb(
 
     Returns
     -------
-    Path
-        Path to the saved combined NWB file.
+    tuple[Path, Union[NWBHDF5IO, NWBZarrIO]]
+        Path to the saved combined NWB file along
+        with the io for writing to disk
     """
     main_io_class = determine_io(main_nwb_fp)
     sub_io_class = determine_io(sub_nwb_fp)
@@ -359,7 +363,7 @@ def combine_nwb(
             sub_nwb = sub_io.read()
             main_nwb = merge_nwb_attribute(main_nwb, sub_nwb)
 
-            return main_nwb
+            return main_nwb, main_io
 
 
 def _get_session_start_date_time(session_start_date_string: str) -> datetime:
