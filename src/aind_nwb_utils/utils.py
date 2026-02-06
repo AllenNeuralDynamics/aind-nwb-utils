@@ -293,7 +293,7 @@ def merge_nwb_attribute(
 
 def combine_nwb(
     main_nwb_fp: Path,
-    sub_nwb_fp: Path,
+    sub_nwb_paths: list[Path],
     save_io: Union[Union[NWBHDF5IO, NWBZarrIO], None] = None,
     output_path: Union[Path, None] = None
 ) -> pynwb.NWBFile:
@@ -305,8 +305,9 @@ def combine_nwb(
     ----------
     main_nwb_fp : Path
         Path to the main NWB file.
-    sub_nwb_fp : Path
-        Path to the secondary NWB file whose data will be merged.
+    sub_nwb_paths : list[Path]
+        List of paths to the secondary NWB files
+        whose data will be merged.
     save_io: Union[Union[NWBHDF5IO, NWBZarrIO], None]
         IO to write to disk if specified
     output_path : Union[Path, None]
@@ -326,25 +327,26 @@ def combine_nwb(
     with main_io_class(main_nwb_fp, "r") as main_io:
         main_nwb = main_io.read()
 
-        with sub_io_class(sub_nwb_fp, "r") as sub_io:
-            sub_nwb = sub_io.read()
-            main_nwb = merge_nwb_attribute(main_nwb, sub_nwb)
+        for sub_nwb_fp in sub_nwb_paths:
+            with sub_io_class(sub_nwb_fp, "r") as sub_io:
+                sub_nwb = sub_io.read()
+                main_nwb = merge_nwb_attribute(main_nwb, sub_nwb)
 
-            if output_path:
-                logger.info(
-                    f"Output path specified. Writing to disk at {output_path}"
-                )
-                with save_io(output_path, "w") as out_io:
-                    try:
-                        out_io.export(
-                            src_io=main_io, write_args=dict(link_data=False)
-                        )
-                    except Exception as e:
-                        last_exception = e
-                        logger.error(f"Failed to export NWB file: {e}")
-                        raise last_exception
+                if output_path:
+                    logger.info(
+                        f"Output path specified. Writing to disk at {output_path}"
+                    )
+                    with save_io(output_path, "w") as out_io:
+                        try:
+                            out_io.export(
+                                src_io=main_io, write_args=dict(link_data=False)
+                            )
+                        except Exception as e:
+                            last_exception = e
+                            logger.error(f"Failed to export NWB file: {e}")
+                            raise last_exception
                     
-            return main_nwb
+        return main_nwb
 
 
 def _get_session_start_date_time(session_start_date_string: str) -> datetime:
