@@ -294,12 +294,13 @@ def merge_nwb_attribute(
 def combine_nwb(
     main_nwb_fp: Path,
     sub_nwb_paths: list[Path],
-    save_io: Union[Union[NWBHDF5IO, NWBZarrIO], None] = None,
+    save_io: Union[NWBHDF5IO, NWBZarrIO] = NWBZarrIO,
     output_path: Union[Path, None] = None
 ) -> pynwb.NWBFile:
     """
     Combine two NWB files by merging attributes from a
-    secondary file into a main nwb object.
+    secondary file into a main nwb object. Saves to disk
+    if save_io and output_path are specified
 
     Parameters
     ----------
@@ -308,16 +309,16 @@ def combine_nwb(
     sub_nwb_paths : list[Path]
         List of paths to the secondary NWB files
         whose data will be merged.
-    save_io: Union[Union[NWBHDF5IO, NWBZarrIO], None]
-        IO to write to disk if specified
+    save_io: Union[NWBHDF5IO, NWBZarrIO]
+        IO to write to disk if specified. Default is 
+        NWBZarrIO
     output_path : Union[Path, None]
         Path to write the merged NWB file if specified.
 
     Returns
     -------
-    tuple[Path, Union[NWBHDF5IO, NWBZarrIO]]
-        Path to the saved combined NWB file along
-        with the io for writing to disk
+    pynwb.NWBFile
+        The combined nwb file
     """
     main_io_class = determine_io(main_nwb_fp)
 
@@ -332,6 +333,9 @@ def combine_nwb(
                 sub_nwb = sub_io.read()
                 main_nwb = merge_nwb_attribute(main_nwb, sub_nwb)
 
+                # this has to be done in the loop because of errors
+                # with nwb context manager if moved outside the loop
+                # might be better way
                 if output_path:
                     logger.info(
                         f"Output path specified. Writing to disk at {output_path}"
