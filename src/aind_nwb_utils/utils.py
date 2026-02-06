@@ -320,14 +320,14 @@ def combine_nwb(
         with the io for writing to disk
     """
     main_io_class = determine_io(main_nwb_fp)
-    sub_io_class = determine_io(sub_nwb_fp)
 
     logger.info(main_nwb_fp)
-    logger.info(sub_nwb_fp)
     with main_io_class(main_nwb_fp, "r") as main_io:
         main_nwb = main_io.read()
 
         for sub_nwb_fp in sub_nwb_paths:
+            logger.info(sub_nwb_fp)
+            sub_io_class = determine_io(sub_nwb_fp)
             with sub_io_class(sub_nwb_fp, "r") as sub_io:
                 sub_nwb = sub_io.read()
                 main_nwb = merge_nwb_attribute(main_nwb, sub_nwb)
