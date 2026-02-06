@@ -332,19 +332,19 @@ def combine_nwb(
                 sub_nwb = sub_io.read()
                 main_nwb = merge_nwb_attribute(main_nwb, sub_nwb)
 
-        if output_path:
-            logger.info(
-                f"Output path specified. Writing to disk at {output_path}"
-            )
-            with save_io(output_path, "w") as out_io:
-                try:
-                    out_io.export(
-                        src_io=main_io, nwbfile=main_nwb, write_args=dict(link_data=False)
+                if output_path:
+                    logger.info(
+                        f"Output path specified. Writing to disk at {output_path}"
                     )
-                except Exception as e:
-                    last_exception = e
-                    logger.error(f"Failed to export NWB file: {e}")
-                    raise last_exception
+                    with save_io(output_path, "w") as out_io:
+                        try:
+                            out_io.export(
+                                src_io=main_io, write_args=dict(link_data=False)
+                            )
+                        except Exception as e:
+                            last_exception = e
+                            logger.error(f"Failed to export NWB file: {e}")
+                            raise last_exception
                     
         return main_nwb
 
