@@ -7,7 +7,7 @@ import uuid
 import warnings
 from datetime import datetime as dt
 from pathlib import Path
-from typing import Any, Union, Iterable
+from typing import Any, Iterable, Union
 
 import numpy as np
 import pynwb
@@ -291,22 +291,18 @@ def merge_nwb_attribute(
     return main_io
 
 
-def combine_nwb_file(
-    main_nwb_fp: Path,
-    sub_nwb_fp: Path,
+def save_nwb_to_disk(
+    nwb: pynwb.NWBFile,
     output_path: Path,
     save_io: Union[NWBHDF5IO, NWBZarrIO],
-) -> Path:
+) -> None:
     """
-    Combine two NWB files by merging attributes from a
-    secondary file into a main file, and write to output_path.
+    Saves the specified nwb file to disk at the output path.
 
     Parameters
     ----------
-    main_nwb_fp : Path
-        Path to the main NWB file.
-    sub_nwb_fp : Path
-        Path to the secondary NWB file whose data will be merged.
+    nwb: pynwb.NWBFile
+        The nwb file to write to disk
     output_path : Path
         Path to write the merged NWB file.
     save_io : Union[NWBHDF5IO, NWBZarrIO]
@@ -314,37 +310,20 @@ def combine_nwb_file(
 
     Returns
     -------
-    Path
-        Path to the saved combined NWB file.
+    None
     """
-    main_io_class = determine_io(main_nwb_fp)
-    sub_io_class = determine_io(sub_nwb_fp)
-
-    logger.info(main_nwb_fp)
-    logger.info(sub_nwb_fp)
-    logger.info(f"Saving merged file to: {output_path}")
-
-    with main_io_class(main_nwb_fp, "r") as main_io:
-        main_nwb = main_io.read()
-
-        with sub_io_class(sub_nwb_fp, "r") as sub_io:
-            sub_nwb = sub_io.read()
-            main_nwb = merge_nwb_attribute(main_nwb, sub_nwb)
-
-            with save_io(output_path, "w") as out_io:
-                try:
-                    out_io.export(
-                        src_io=main_io, write_args=dict(link_data=False)
-                    )
-                except Exception as e:
-                    last_exception = e
-                    print(f"Failed to export NWB file: {e}")
-                    raise last_exception
-
-    return output_path
+    with save_io(output_path, "w") as out_io:
+        try:
+            out_io.export(
+                src_io=save_io, nwbfile=nwb, write_args=dict(link_data=False)
+            )
+        except Exception as e:
+            last_exception = e
+            logger.error(f"Failed to export NWB file: {e}")
+            raise last_exception
 
 
-def combine_nwb_file_objects(
+def combine_nwb(
     main_nwb_fp: Path,
     sub_nwb_fp: Path,
 ) -> pynwb.NWBFile:
@@ -608,9 +587,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
 
     else:
         session_metadata = metadata_map[session_json_path]
-    nwb_subject = get_subject_nwb_object(
-        data_description, subject_metadata
-    )
+    nwb_subject = get_subject_nwb_object(data_description, subject_metadata)
     session_start_date_time = _get_session_start_date_time(
         data_description["creation_time"]
     )
@@ -625,13 +602,8 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
 
     generation_code = []
     processing_pipeline = processing_metadata.get("processing_pipeline", {})
-    if (
-        processing_pipeline.get("data_processes")
-        is not None
-    ):
-        for process in processing_pipeline.get(
-            "data_processes", "Unknown"
-        ):
+    if processing_pipeline.get("data_processes") is not None:
+        for process in processing_pipeline.get("data_processes", "Unknown"):
             generation_code.append(process.get("code"))
 
     experiment_description = ""
