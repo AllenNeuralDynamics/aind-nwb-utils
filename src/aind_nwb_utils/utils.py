@@ -474,46 +474,19 @@ def open_metadata_jsons(
 
     Returns
     -------
-    tuple[dict[Path, dict[str, Any]], bool]
+    tuple[dict[Path, dict[str, Any]]]
         - Mapping of path to metadata contents
-        - Boolean indicating ADS v2 (True) or v1.x (False)
     """
     metadata_map: dict[Path, dict[str, Any]] = {}
 
-    # Default assumption
-    ads_2 = True
-
-    ads_2_unique_files = [
-        "acquisition.json",
-        "instrument.json",
-    ]
-    ads_1_unique_files = [
-        "session.json",
-        "rig.json",
-    ]
-
     for path in metadata_paths:
 
-        # Schema inference (do NOT require both to exist)
-        if path.stem == "acquisition":
-            if not path.exists():
-                ads_2 = False
-                continue
+        if path.exists():
+            metadata_map[path] = open_metadata_json(path)
+        else:
+            raise ValueError("Missing metadata file: ")
 
-        if path.stem == "session":
-            if path.exists():
-                ads_2 = False
-
-        if not path.exists():
-            if ads_2 and path.name in ads_2_unique_files:
-                raise FileNotFoundError(f"No metadata json found at {path}")
-            if not ads_2 and path.name in ads_1_unique_files:
-                raise FileNotFoundError(f"No metadata json found at {path}")
-
-        with open(path, "r") as f:
-            metadata_map[path] = json.load(f)
-
-    return metadata_map, ads_2
+    return metadata_map
 
 
 def open_metadata_json(metadata_path: Path) -> dict[str, Any]:
@@ -527,12 +500,9 @@ def open_metadata_json(metadata_path: Path) -> dict[str, Any]:
 
     Returns
     -------
-    dict[str, Any]
+    dict[str, bool]
         The contents of the metadata json file as a dictionary.
     """
-    if not metadata_path.exists():
-        raise FileNotFoundError(f"No metadata json found at {metadata_path}")
-
     with open(metadata_path, "r") as f:
         metadata = json.load(f)
 
@@ -553,20 +523,24 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     pynwb.NWBFile
         The base nwb file with subject metadata
     """
-    data_description_path = data_path / "data_description.json"
-    subject_json_path = data_path / "subject.json"
-    procedures_json_path = data_path / "procedures.json"
-    processing_json_path = data_path / "processing.json"
-    session_json_path = data_path / "session.json"
-    acquisition_json_path = data_path / "acquisition.json"
+    data_description_path = next(data_path.glob("data_description", ""))
+    subject_json_path = next(data_path.glob("subject.json", ""))
+    procedures_json_path = next(data_path.glob("procedures.json", ""))
+    processing_json_path = next(data_path.glob("processing.json", ""))
+    session_json_path = next(data_path.glob("session.json", ""))
+    acquisition_json_path = next(data_path.glob("acquisition.json", ""))
+    ads_2 = True
+    if session_json_path:
+        ads_2 = False
+    if session_json_path and acquisition_json_path:
+        raise ValueError("Both session and acquisition metadata files present")
     metadata_map, ads_2 = open_metadata_jsons(
         [
             data_description_path,
             subject_json_path,
             procedures_json_path,
             processing_json_path,
-            session_json_path,
-            acquisition_json_path,
+            session_json_path | acquisition_json_path,
         ]
     )
 
