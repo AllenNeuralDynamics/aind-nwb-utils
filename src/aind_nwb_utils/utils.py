@@ -295,7 +295,7 @@ def combine_nwb(
     main_nwb_fp: Path,
     sub_nwb_paths: list[Path],
     save_io: Union[NWBHDF5IO, NWBZarrIO] = NWBZarrIO,
-    output_path: Union[Path, None] = None
+    output_path: Union[Path, None] = None,
 ) -> pynwb.NWBFile:
     """
     Combine two NWB files by merging attributes from a
@@ -310,7 +310,7 @@ def combine_nwb(
         List of paths to the secondary NWB files
         whose data will be merged.
     save_io: Union[NWBHDF5IO, NWBZarrIO]
-        IO to write to disk if specified. Default is 
+        IO to write to disk if specified. Default is
         NWBZarrIO
     output_path : Union[Path, None]
         Path to write the merged NWB file if specified.
@@ -338,18 +338,20 @@ def combine_nwb(
                 # might be better way
                 if output_path:
                     logger.info(
-                        f"Output path specified. Writing to disk at {output_path}"
+                        "Output path specified. "
+                        f"Writing to disk at {output_path}"
                     )
                     with save_io(output_path, "w") as out_io:
                         try:
                             out_io.export(
-                                src_io=main_io, write_args=dict(link_data=False)
+                                src_io=main_io,
+                                write_args=dict(link_data=False),
                             )
                         except Exception as e:
                             last_exception = e
                             logger.error(f"Failed to export NWB file: {e}")
                             raise last_exception
-                    
+
         return main_nwb
 
 
