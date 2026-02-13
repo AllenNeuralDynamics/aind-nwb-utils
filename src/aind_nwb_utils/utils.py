@@ -5,9 +5,10 @@ import json
 import logging
 import uuid
 import warnings
+from contextlib import ExitStack, contextmanager
 from datetime import datetime as dt
 from pathlib import Path
-from typing import Any, Iterable, Union
+from typing import Any, Generator, Iterable, Union
 
 import numpy as np
 import pynwb
@@ -291,16 +292,15 @@ def merge_nwb_attribute(
     return main_io
 
 
+@contextmanager
 def combine_nwb(
     main_nwb_fp: Path,
     sub_nwb_paths: list[Path],
-    save_io: Union[NWBHDF5IO, NWBZarrIO] = NWBZarrIO,
-    output_path: Union[Path, None] = None,
-) -> pynwb.NWBFile:
+) -> Generator[tuple[pynwb.NWBFile, Union[NWBHDF5IO, NWBZarrIO]], None, None]:
     """
-    Combine two NWB files by merging attributes from a
-    secondary file into a main nwb object. Saves to disk
-    if save_io and output_path are specified
+    Context manager that merges sub NWB files into a main NWB file.
+    Yields (merged_nwb, main_io) with all IO handles kept open so
+    that the caller can optionally save via save_nwb().
 
     Parameters
     ----------
@@ -309,50 +309,81 @@ def combine_nwb(
     sub_nwb_paths : list[Path]
         List of paths to the secondary NWB files
         whose data will be merged.
-    save_io: Union[NWBHDF5IO, NWBZarrIO]
-        IO to write to disk if specified. Default is
-        NWBZarrIO
-    output_path : Union[Path, None]
-        Path to write the merged NWB file if specified.
 
-    Returns
-    -------
-    pynwb.NWBFile
-        The combined nwb file
+    Yields
+    ------
+    tuple[pynwb.NWBFile, Union[NWBHDF5IO, NWBZarrIO]]
+        The combined NWB file and the main IO handle (still open).
     """
     main_io_class = determine_io(main_nwb_fp)
 
     logger.info(main_nwb_fp)
-    with main_io_class(main_nwb_fp, "r") as main_io:
+    with ExitStack() as stack:
+        main_io = stack.enter_context(main_io_class(main_nwb_fp, "r"))
         main_nwb = main_io.read()
 
         for sub_nwb_fp in sub_nwb_paths:
             logger.info(sub_nwb_fp)
             sub_io_class = determine_io(sub_nwb_fp)
-            with sub_io_class(sub_nwb_fp, "r") as sub_io:
-                sub_nwb = sub_io.read()
-                main_nwb = merge_nwb_attribute(main_nwb, sub_nwb)
+            sub_io = stack.enter_context(sub_io_class(sub_nwb_fp, "r"))
+            sub_nwb = sub_io.read()
+            main_nwb = merge_nwb_attribute(main_nwb, sub_nwb)
 
-                # this has to be done in the loop because of errors
-                # with nwb context manager if moved outside the loop
-                # might be better way
-                if output_path:
-                    logger.info(
-                        "Output path specified. "
-                        f"Writing to disk at {output_path}"
-                    )
-                    with save_io(output_path, "w") as out_io:
-                        try:
-                            out_io.export(
-                                src_io=main_io,
-                                write_args=dict(link_data=False),
-                            )
-                        except Exception as e:
-                            last_exception = e
-                            logger.error(f"Failed to export NWB file: {e}")
-                            raise last_exception
+        yield main_nwb, main_io
 
-        return main_nwb
+
+def combine_nwb_read(
+    main_nwb_fp: Path,
+    sub_nwb_paths: list[Path],
+) -> pynwb.NWBFile:
+    """
+    Combine NWB files and return the merged NWBFile.
+    IO handles are closed after merging. Since pynwb
+    uses lazy loading, data arrays not already read into
+    memory will be inaccessible after this call returns.
+    Use combine_nwb() if you need to save or access
+    lazy-loaded data.
+
+    See:
+    https://pynwb.readthedocs.io/en/stable/tutorials/general/plot_read_basics.html
+
+    Parameters
+    ----------
+    main_nwb_fp : Path
+        Path to the main NWB file.
+    sub_nwb_paths : list[Path]
+        List of paths to the secondary NWB files
+        whose data will be merged.
+
+    Returns
+    -------
+    pynwb.NWBFile
+        The combined NWB file.
+    """
+    with combine_nwb(main_nwb_fp, sub_nwb_paths) as (nwb, _):
+        return nwb
+
+
+def save_nwb(
+    main_io: Union[NWBHDF5IO, NWBZarrIO],
+    save_io: type[Union[NWBHDF5IO, NWBZarrIO]],
+    output_path: Path,
+) -> None:
+    """
+    Export an NWB file from an open IO handle to disk.
+
+    Parameters
+    ----------
+    main_io : Union[NWBHDF5IO, NWBZarrIO]
+        The source IO handle (must still be open).
+    save_io : type[Union[NWBHDF5IO, NWBZarrIO]]
+        The IO class to use for writing.
+    output_path : Path
+        Path to write the exported NWB file.
+    """
+    logger.info(f"Writing to disk at {output_path}")
+    with save_io(output_path, "w") as out_io:
+        out_io.export(src_io=main_io, write_args=dict(link_data=False))
 
 
 def _get_session_start_date_time(session_start_date_string: str) -> datetime:

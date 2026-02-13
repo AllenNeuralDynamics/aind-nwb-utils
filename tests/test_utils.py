@@ -141,16 +141,20 @@ class TestUtils(unittest.TestCase):
 
     def test_get_nwb_attribute(self):
         """Test get_nwb_attribute function"""
-        result_nwb = combine_nwb(self.behavior_fp, [self.eye_tracking_fp])
-        eye_io = determine_io(self.eye_tracking_fp)
-        with eye_io(self.eye_tracking_fp, "r") as io:
-            eye_nwb = io.read()
-        self.assertNotEqual(result_nwb, eye_nwb)
+        with combine_nwb(
+            self.behavior_fp, [self.eye_tracking_fp]
+        ) as (result_nwb, _):
+            eye_io = determine_io(self.eye_tracking_fp)
+            with eye_io(self.eye_tracking_fp, "r") as io:
+                eye_nwb = io.read()
+            self.assertNotEqual(result_nwb, eye_nwb)
 
     def test_combine_nwb_file(self):
         """Test combine_nwb_file function"""
-        result = combine_nwb(self.behavior_fp, [self.eye_tracking_fp])
-        self.assertTrue(isinstance(result, NWBFile))
+        with combine_nwb(
+            self.behavior_fp, [self.eye_tracking_fp]
+        ) as (result, _):
+            self.assertTrue(isinstance(result, NWBFile))
 
     def test_cast_timeseries_if_needed_float64_to_float32(self):
         """Test casting float64 TimeSeries data to float32"""
