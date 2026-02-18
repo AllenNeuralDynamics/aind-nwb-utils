@@ -49,7 +49,7 @@ class NWBCombineIO:
     def __init__(
         self,
         main_nwb_fp: Path,
-        sub_nwb_paths: list[Path],
+        *sub_nwb_paths: Path,
     ) -> None:
         self._main_nwb_fp = main_nwb_fp
         self._sub_nwb_paths = sub_nwb_paths
