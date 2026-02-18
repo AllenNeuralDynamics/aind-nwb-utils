@@ -1,11 +1,11 @@
 """Tests for nwb_io.py"""
 
+import tempfile
 import unittest
 from pathlib import Path
 
 from hdmf_zarr import NWBZarrIO
 from pynwb import NWBHDF5IO
-import tempfile
 
 from aind_nwb_utils.nwb_io import create_temp_nwb, determine_io
 

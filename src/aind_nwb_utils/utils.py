@@ -22,8 +22,6 @@ from pynwb import NWBHDF5IO, TimeSeries
 from pynwb.base import VectorData
 from pynwb.file import Device, Subject
 
-from aind_nwb_utils.nwb_io import determine_io
-
 logger = logging.getLogger(__name__)
 
 
@@ -291,70 +289,6 @@ def merge_nwb_attribute(
     return main_io
 
 
-def combine_nwb(
-    main_nwb_fp: Path,
-    sub_nwb_paths: list[Path],
-    save_io: Union[NWBHDF5IO, NWBZarrIO] = NWBZarrIO,
-    output_path: Union[Path, None] = None,
-) -> pynwb.NWBFile:
-    """
-    Combine two NWB files by merging attributes from a
-    secondary file into a main nwb object. Saves to disk
-    if save_io and output_path are specified
-
-    Parameters
-    ----------
-    main_nwb_fp : Path
-        Path to the main NWB file.
-    sub_nwb_paths : list[Path]
-        List of paths to the secondary NWB files
-        whose data will be merged.
-    save_io: Union[NWBHDF5IO, NWBZarrIO]
-        IO to write to disk if specified. Default is
-        NWBZarrIO
-    output_path : Union[Path, None]
-        Path to write the merged NWB file if specified.
-
-    Returns
-    -------
-    pynwb.NWBFile
-        The combined nwb file
-    """
-    main_io_class = determine_io(main_nwb_fp)
-
-    logger.info(main_nwb_fp)
-    with main_io_class(main_nwb_fp, "r") as main_io:
-        main_nwb = main_io.read()
-
-        for sub_nwb_fp in sub_nwb_paths:
-            logger.info(sub_nwb_fp)
-            sub_io_class = determine_io(sub_nwb_fp)
-            with sub_io_class(sub_nwb_fp, "r") as sub_io:
-                sub_nwb = sub_io.read()
-                main_nwb = merge_nwb_attribute(main_nwb, sub_nwb)
-
-                # this has to be done in the loop because of errors
-                # with nwb context manager if moved outside the loop
-                # might be better way
-                if output_path:
-                    logger.info(
-                        "Output path specified. "
-                        f"Writing to disk at {output_path}"
-                    )
-                    with save_io(output_path, "w") as out_io:
-                        try:
-                            out_io.export(
-                                src_io=main_io,
-                                write_args=dict(link_data=False),
-                            )
-                        except Exception as e:
-                            last_exception = e
-                            logger.error(f"Failed to export NWB file: {e}")
-                            raise last_exception
-
-        return main_nwb
-
-
 def _get_session_start_date_time(session_start_date_string: str) -> datetime:
     """
     Returns the datetime given the string
@@ -474,46 +408,19 @@ def open_metadata_jsons(
 
     Returns
     -------
-    tuple[dict[Path, dict[str, Any]], bool]
+    tuple[dict[Path, dict[str, Any]]]
         - Mapping of path to metadata contents
-        - Boolean indicating ADS v2 (True) or v1.x (False)
     """
     metadata_map: dict[Path, dict[str, Any]] = {}
 
-    # Default assumption
-    ads_2 = True
-
-    ads_2_unique_files = [
-        "acquisition.json",
-        "instrument.json",
-    ]
-    ads_1_unique_files = [
-        "session.json",
-        "rig.json",
-    ]
-
     for path in metadata_paths:
 
-        # Schema inference (do NOT require both to exist)
-        if path.stem == "acquisition":
-            if not path.exists():
-                ads_2 = False
-                continue
+        if path.exists():
+            metadata_map[path] = open_metadata_json(path)
+        else:
+            raise ValueError("Missing metadata file: ")
 
-        if path.stem == "session":
-            if path.exists():
-                ads_2 = False
-
-        if not path.exists():
-            if ads_2 and path.name in ads_2_unique_files:
-                raise FileNotFoundError(f"No metadata json found at {path}")
-            if not ads_2 and path.name in ads_1_unique_files:
-                raise FileNotFoundError(f"No metadata json found at {path}")
-
-        with open(path, "r") as f:
-            metadata_map[path] = json.load(f)
-
-    return metadata_map, ads_2
+    return metadata_map
 
 
 def open_metadata_json(metadata_path: Path) -> dict[str, Any]:
@@ -527,12 +434,9 @@ def open_metadata_json(metadata_path: Path) -> dict[str, Any]:
 
     Returns
     -------
-    dict[str, Any]
+    dict[str, bool]
         The contents of the metadata json file as a dictionary.
     """
-    if not metadata_path.exists():
-        raise FileNotFoundError(f"No metadata json found at {metadata_path}")
-
     with open(metadata_path, "r") as f:
         metadata = json.load(f)
 
@@ -553,20 +457,24 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     pynwb.NWBFile
         The base nwb file with subject metadata
     """
-    data_description_path = data_path / "data_description.json"
-    subject_json_path = data_path / "subject.json"
-    procedures_json_path = data_path / "procedures.json"
-    processing_json_path = data_path / "processing.json"
-    session_json_path = data_path / "session.json"
-    acquisition_json_path = data_path / "acquisition.json"
+    data_description_path = next(data_path.glob("data_description", ""))
+    subject_json_path = next(data_path.glob("subject.json", ""))
+    procedures_json_path = next(data_path.glob("procedures.json", ""))
+    processing_json_path = next(data_path.glob("processing.json", ""))
+    session_json_path = next(data_path.glob("session.json", ""))
+    acquisition_json_path = next(data_path.glob("acquisition.json", ""))
+    ads_2 = True
+    if session_json_path:
+        ads_2 = False
+    if session_json_path and acquisition_json_path:
+        raise ValueError("Both session and acquisition metadata files present")
     metadata_map, ads_2 = open_metadata_jsons(
         [
             data_description_path,
             subject_json_path,
             procedures_json_path,
             processing_json_path,
-            session_json_path,
-            acquisition_json_path,
+            session_json_path | acquisition_json_path,
         ]
     )
 

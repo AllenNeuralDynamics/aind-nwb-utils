@@ -17,6 +17,7 @@ from pynwb.base import (  # example NWB container
 from pynwb.epoch import TimeIntervals
 from pynwb.file import Device, Subject
 
+from aind_nwb_utils import NWBCombineIO
 from aind_nwb_utils.nwb_io import determine_io
 from aind_nwb_utils.utils import (
     _get_session_start_date_time,
@@ -25,7 +26,6 @@ from aind_nwb_utils.utils import (
     add_data,
     cast_timeseries_if_needed,
     cast_vectordata_if_needed,
-    combine_nwb,
     create_base_nwb_file,
     get_ephys_devices_from_metadata,
     get_subject_nwb_object,
@@ -141,16 +141,22 @@ class TestUtils(unittest.TestCase):
 
     def test_get_nwb_attribute(self):
         """Test get_nwb_attribute function"""
-        result_nwb = combine_nwb(self.behavior_fp, [self.eye_tracking_fp])
-        eye_io = determine_io(self.eye_tracking_fp)
-        with eye_io(self.eye_tracking_fp, "r") as io:
-            eye_nwb = io.read()
-        self.assertNotEqual(result_nwb, eye_nwb)
+        with NWBCombineIO(self.behavior_fp, [self.eye_tracking_fp]) as (
+            result_nwb,
+            _,
+        ):
+            eye_io = determine_io(self.eye_tracking_fp)
+            with eye_io(self.eye_tracking_fp, "r") as io:
+                eye_nwb = io.read()
+            self.assertNotEqual(result_nwb, eye_nwb)
 
     def test_combine_nwb_file(self):
         """Test combine_nwb_file function"""
-        result = combine_nwb(self.behavior_fp, [self.eye_tracking_fp])
-        self.assertTrue(isinstance(result, NWBFile))
+        with NWBCombineIO(self.behavior_fp, [self.eye_tracking_fp]) as (
+            result,
+            _,
+        ):
+            self.assertTrue(isinstance(result, NWBFile))
 
     def test_cast_timeseries_if_needed_float64_to_float32(self):
         """Test casting float64 TimeSeries data to float32"""
@@ -682,6 +688,45 @@ class TestUtils(unittest.TestCase):
 
         # Verify that add_events_table was NOT called
         mock_main_io.add_events_table.assert_not_called()
+
+    def test_combine_nwb_write_zarr(self):
+        """Test NWBCombineIO.write with zarr format"""
+        import shutil
+        import tempfile
+
+        output_dir = Path(tempfile.mkdtemp())
+        output_path = output_dir / "combined_output"
+        try:
+            combiner = NWBCombineIO(self.behavior_fp, [self.eye_tracking_fp])
+            combiner.read()
+            combiner.write(output_path, format="zarr")
+            combiner.close()
+            self.assertTrue(output_path.exists())
+        finally:
+            shutil.rmtree(output_dir)
+
+    def test_combine_nwb_write_hdf5(self):
+        """Test NWBCombineIO.write with hdf5 format"""
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(suffix=".nwb", delete=False) as tmp:
+            output_path = Path(tmp.name)
+        try:
+            combiner = NWBCombineIO(self.behavior_fp, [self.eye_tracking_fp])
+            combiner.read()
+            combiner.write(output_path, format="hdf5")
+            combiner.close()
+            self.assertTrue(output_path.exists())
+        finally:
+            output_path.unlink(missing_ok=True)
+
+    def test_combine_nwb_write_invalid_format(self):
+        """Test NWBCombineIO.write raises ValueError for invalid format"""
+        combiner = NWBCombineIO(self.behavior_fp, [self.eye_tracking_fp])
+        combiner.read()
+        with self.assertRaises(ValueError):
+            combiner.write(Path("output"), format="parquet")
+        combiner.close()
 
 
 if __name__ == "__main__":
