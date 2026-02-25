@@ -15,7 +15,9 @@ logger = logging.getLogger(__name__)
 
 class NWBCombineIO:
     """
-    Merges sub NWB files into a main NWB object.
+    Merges sub NWB files into a main NWB object. The main_nwb_fp
+    is the NWB file containing device information or units data.
+    Files containing trials data are typically considered sub_nwb_paths
 
     Supports two usage patterns:
 
