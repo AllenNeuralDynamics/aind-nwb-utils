@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class NWBCombineIO:
     """
-    Merges sub NWB files into a main NWB file.
+    Merges sub NWB files into a main NWB object.
 
     Supports two usage patterns:
 
