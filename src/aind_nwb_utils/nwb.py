@@ -17,7 +17,10 @@ class NWBCombineIO:
     """
     Merges sub NWB files into a main NWB object. The main_nwb_fp
     is the NWB file containing device information or units data.
-    Files containing trials data are typically considered sub_nwb_paths
+    Files containing trials data are typically considered sub_nwb_paths.
+    However, in the future, main and sub filepaths shouldn't need to be
+    specified. As we align on a standard NWB format, the combine 
+    functionality will become simpler.
 
     Supports two usage patterns:
 
