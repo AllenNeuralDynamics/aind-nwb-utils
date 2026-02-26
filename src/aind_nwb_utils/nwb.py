@@ -56,7 +56,7 @@ class NWBCombineIO:
     def __init__(
         self,
         main_nwb_fp: Path,
-        *sub_nwb_paths: Path,
+        sub_nwb_paths: list[Path],
     ) -> None:
         """
         Initialize NWBCombineIO with main and sub NWB file paths.
@@ -65,7 +65,7 @@ class NWBCombineIO:
         ----------
         main_nwb_fp : Path
             Path to the main NWB file.
-        *sub_nwb_paths : Path
+        sub_nwb_paths : list[Path]
             Paths to the secondary NWB files whose data will be merged.
         """
         self._main_nwb_fp = main_nwb_fp
