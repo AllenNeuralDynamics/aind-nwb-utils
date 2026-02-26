@@ -457,77 +457,71 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     pynwb.NWBFile
         The base nwb file with subject metadata
     """
-    data_description_path = next(data_path.glob("data_description", ""))
-    subject_json_path = next(data_path.glob("subject.json", ""))
-    procedures_json_path = next(data_path.glob("procedures.json", ""))
-    processing_json_path = next(data_path.glob("processing.json", ""))
-    session_json_path = next(data_path.glob("session.json", ""))
-    acquisition_json_path = next(data_path.glob("acquisition.json", ""))
-    ads_2 = True
-    if session_json_path:
-        ads_2 = False
-    if session_json_path and acquisition_json_path:
+    data_path = Path(data_path)
+    acquisition_json_path = data_path / "acquisition.json"
+    session_json_path = data_path / "session.json"
+
+    if acquisition_json_path.exists() and session_json_path.exists():
         raise ValueError("Both session and acquisition metadata files present")
-    metadata_map, ads_2 = open_metadata_jsons(
+
+    ads_2 = acquisition_json_path.exists()
+    session_or_acquisition_path = (
+        acquisition_json_path if ads_2 else session_json_path
+    )
+
+    if ads_2:
+        logging.info("Found AIND data schema version 2.x metadata files")
+
+    metadata_map = open_metadata_jsons(
         [
-            data_description_path,
-            subject_json_path,
-            procedures_json_path,
-            processing_json_path,
-            session_json_path | acquisition_json_path,
+            data_path / "data_description.json",
+            data_path / "subject.json",
+            data_path / "procedures.json",
+            data_path / "processing.json",
+            session_or_acquisition_path,
         ]
     )
 
-    data_description = metadata_map[data_description_path]
-    subject_metadata = metadata_map[subject_json_path]
-    procedures_metadata = metadata_map[procedures_json_path]
-    processing_metadata = metadata_map[processing_json_path]
-    if ads_2:
-        logging.info("Found AIND data schema version 2.x metadata files")
-        session_metadata = metadata_map[acquisition_json_path]
+    data_description = metadata_map[data_path / "data_description.json"]
+    subject_metadata = metadata_map[data_path / "subject.json"]
+    procedures_metadata = metadata_map[data_path / "procedures.json"]
+    processing_metadata = metadata_map[data_path / "processing.json"]
+    session_metadata = metadata_map[session_or_acquisition_path]
 
-    else:
-        session_metadata = metadata_map[session_json_path]
     nwb_subject = get_subject_nwb_object(data_description, subject_metadata)
     session_start_date_time = _get_session_start_date_time(
         data_description["creation_time"]
     )
-    experimenters = []
-    for procedure in procedures_metadata.get("subject_procedures", []):
-        experimenters.append(procedure.get("experimenter_full_name"))
 
-    if data_description.get("investigators") is not None:
-        for investigator in data_description.get("investigators", []):
-            full_name = investigator.get("name", "No Experimenter Name")
-            experimenters.append(full_name)
+    experimenters = [
+        procedure.get("experimenter_full_name")
+        for procedure in procedures_metadata.get("subject_procedures", [])
+    ]
+    experimenters += [
+        investigator.get("name", "No Experimenter Name")
+        for investigator in data_description.get("investigators", [])
+    ]
 
-    generation_code = []
-    processing_pipeline = processing_metadata.get("processing_pipeline", {})
-    if processing_pipeline.get("data_processes") is not None:
-        for process in processing_pipeline.get("data_processes", "Unknown"):
-            generation_code.append(process.get("code"))
+    generation_code = [
+        process.get("code")
+        for process in processing_metadata.get("processing_pipeline", {}).get(
+            "data_processes", []
+        )
+    ]
 
-    experiment_description = ""
     project_name = data_description.get("project", "Unknown Project")
     session_type = session_metadata.get("session_type", "No specified")
-    modalities = []
-
-    if data_description.get("modality") is not None:
-        for modality in data_description.get("modality", []):
-            modalities.append(modality.get("name", ""))
+    modalities = [
+        modality.get("name", "")
+        for modality in data_description.get("modality", [])
+    ]
 
     experiment_description = (
-        "A "
-        + project_name
-        + " "
-        + " experiment performed using "
-        + session_type
-        + " behavior. "
+        f"A {project_name} experiment performed using {session_type} behavior."
     )
-
-    if len(modalities) > 0:
+    if modalities:
         experiment_description += (
-            "Experiment includes " + ", ".join(modalities) + " modalities."
+            " Experiment includes " + ", ".join(modalities) + " modalities."
         )
 
     nwb_file = NdxEventsNWBFile(
