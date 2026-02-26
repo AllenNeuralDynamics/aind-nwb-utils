@@ -19,7 +19,7 @@ class NWBCombineIO:
     is the NWB file containing device information or units data.
     Files containing trials data are typically considered sub_nwb_paths.
     However, in the future, main and sub filepaths shouldn't need to be
-    specified. As we align on a standard NWB format, the combine 
+    specified. As we align on a standard NWB format, the combine
     functionality will become simpler.
 
     Supports two usage patterns:
