@@ -1,3 +1,5 @@
+"""Classes for combining and exporting NWB files."""
+
 from contextlib import ExitStack
 from typing import Union
 from pathlib import Path
@@ -56,6 +58,16 @@ class NWBCombineIO:
         main_nwb_fp: Path,
         *sub_nwb_paths: Path,
     ) -> None:
+        """
+        Initialize NWBCombineIO with main and sub NWB file paths.
+
+        Parameters
+        ----------
+        main_nwb_fp : Path
+            Path to the main NWB file.
+        *sub_nwb_paths : Path
+            Paths to the secondary NWB files whose data will be merged.
+        """
         self._main_nwb_fp = main_nwb_fp
         self._sub_nwb_paths = sub_nwb_paths
         self._stack: ExitStack | None = None
