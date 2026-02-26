@@ -7,7 +7,7 @@ import uuid
 import warnings
 from datetime import datetime as dt
 from pathlib import Path
-from typing import Any, Union, Iterable
+from typing import Any, Iterable, Union
 
 import numpy as np
 import pynwb
@@ -21,8 +21,6 @@ from packaging.version import parse
 from pynwb import NWBHDF5IO, TimeSeries
 from pynwb.base import VectorData
 from pynwb.file import Device, Subject
-
-from aind_nwb_utils.nwb_io import determine_io
 
 logger = logging.getLogger(__name__)
 
@@ -291,98 +289,6 @@ def merge_nwb_attribute(
     return main_io
 
 
-def combine_nwb_file(
-    main_nwb_fp: Path,
-    sub_nwb_fp: Path,
-    output_path: Path,
-    save_io: Union[NWBHDF5IO, NWBZarrIO],
-) -> Path:
-    """
-    Combine two NWB files by merging attributes from a
-    secondary file into a main file, and write to output_path.
-
-    Parameters
-    ----------
-    main_nwb_fp : Path
-        Path to the main NWB file.
-    sub_nwb_fp : Path
-        Path to the secondary NWB file whose data will be merged.
-    output_path : Path
-        Path to write the merged NWB file.
-    save_io : Union[NWBHDF5IO, NWBZarrIO]
-        IO class used to write the resulting NWB file.
-
-    Returns
-    -------
-    Path
-        Path to the saved combined NWB file.
-    """
-    main_io_class = determine_io(main_nwb_fp)
-    sub_io_class = determine_io(sub_nwb_fp)
-
-    logger.info(main_nwb_fp)
-    logger.info(sub_nwb_fp)
-    logger.info(f"Saving merged file to: {output_path}")
-
-    with main_io_class(main_nwb_fp, "r") as main_io:
-        main_nwb = main_io.read()
-
-        with sub_io_class(sub_nwb_fp, "r") as sub_io:
-            sub_nwb = sub_io.read()
-            main_nwb = merge_nwb_attribute(main_nwb, sub_nwb)
-
-            with save_io(output_path, "w") as out_io:
-                try:
-                    out_io.export(
-                        src_io=main_io, write_args=dict(link_data=False)
-                    )
-                except Exception as e:
-                    last_exception = e
-                    print(f"Failed to export NWB file: {e}")
-                    raise last_exception
-
-    return output_path
-
-
-def combine_nwb_file_objects(
-    main_nwb_fp: Path,
-    sub_nwb_fp: Path,
-) -> pynwb.NWBFile:
-    """
-    Combine two NWB files by merging attributes from a
-    secondary file into a main nwb object.
-
-    Parameters
-    ----------
-    main_nwb_fp : Path
-        Path to the main NWB file.
-    sub_nwb_fp : Path
-        Path to the secondary NWB file whose data will be merged.
-    output_path : Path
-        Path to write the merged NWB file.
-    save_io : Union[NWBHDF5IO, NWBZarrIO]
-        IO class used to write the resulting NWB file.
-
-    Returns
-    -------
-    Path
-        Path to the saved combined NWB file.
-    """
-    main_io_class = determine_io(main_nwb_fp)
-    sub_io_class = determine_io(sub_nwb_fp)
-
-    logger.info(main_nwb_fp)
-    logger.info(sub_nwb_fp)
-    with main_io_class(main_nwb_fp, "r") as main_io:
-        main_nwb = main_io.read()
-
-        with sub_io_class(sub_nwb_fp, "r") as sub_io:
-            sub_nwb = sub_io.read()
-            main_nwb = merge_nwb_attribute(main_nwb, sub_nwb)
-
-            return main_nwb
-
-
 def _get_session_start_date_time(session_start_date_string: str) -> datetime:
     """
     Returns the datetime given the string
@@ -502,46 +408,19 @@ def open_metadata_jsons(
 
     Returns
     -------
-    tuple[dict[Path, dict[str, Any]], bool]
+    tuple[dict[Path, dict[str, Any]]]
         - Mapping of path to metadata contents
-        - Boolean indicating ADS v2 (True) or v1.x (False)
     """
     metadata_map: dict[Path, dict[str, Any]] = {}
 
-    # Default assumption
-    ads_2 = True
-
-    ads_2_unique_files = [
-        "acquisition.json",
-        "instrument.json",
-    ]
-    ads_1_unique_files = [
-        "session.json",
-        "rig.json",
-    ]
-
     for path in metadata_paths:
 
-        # Schema inference (do NOT require both to exist)
-        if path.stem == "acquisition":
-            if not path.exists():
-                ads_2 = False
-                continue
+        if path.exists():
+            metadata_map[path] = open_metadata_json(path)
+        else:
+            raise ValueError("Missing metadata file: ")
 
-        if path.stem == "session":
-            if path.exists():
-                ads_2 = False
-
-        if not path.exists():
-            if ads_2 and path.name in ads_2_unique_files:
-                raise FileNotFoundError(f"No metadata json found at {path}")
-            if not ads_2 and path.name in ads_1_unique_files:
-                raise FileNotFoundError(f"No metadata json found at {path}")
-
-        with open(path, "r") as f:
-            metadata_map[path] = json.load(f)
-
-    return metadata_map, ads_2
+    return metadata_map
 
 
 def open_metadata_json(metadata_path: Path) -> dict[str, Any]:
@@ -555,12 +434,9 @@ def open_metadata_json(metadata_path: Path) -> dict[str, Any]:
 
     Returns
     -------
-    dict[str, Any]
+    dict[str, bool]
         The contents of the metadata json file as a dictionary.
     """
-    if not metadata_path.exists():
-        raise FileNotFoundError(f"No metadata json found at {metadata_path}")
-
     with open(metadata_path, "r") as f:
         metadata = json.load(f)
 
@@ -581,80 +457,71 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     pynwb.NWBFile
         The base nwb file with subject metadata
     """
-    data_description_path = data_path / "data_description.json"
-    subject_json_path = data_path / "subject.json"
-    procedures_json_path = data_path / "procedures.json"
-    processing_json_path = data_path / "processing.json"
-    session_json_path = data_path / "session.json"
+    data_path = Path(data_path)
     acquisition_json_path = data_path / "acquisition.json"
-    metadata_map, ads_2 = open_metadata_jsons(
+    session_json_path = data_path / "session.json"
+
+    if acquisition_json_path.exists() and session_json_path.exists():
+        raise ValueError("Both session and acquisition metadata files present")
+
+    ads_2 = acquisition_json_path.exists()
+    session_or_acquisition_path = (
+        acquisition_json_path if ads_2 else session_json_path
+    )
+
+    if ads_2:
+        logging.info("Found AIND data schema version 2.x metadata files")
+
+    metadata_map = open_metadata_jsons(
         [
-            data_description_path,
-            subject_json_path,
-            procedures_json_path,
-            processing_json_path,
-            session_json_path,
-            acquisition_json_path,
+            data_path / "data_description.json",
+            data_path / "subject.json",
+            data_path / "procedures.json",
+            data_path / "processing.json",
+            session_or_acquisition_path,
         ]
     )
 
-    data_description = metadata_map[data_description_path]
-    subject_metadata = metadata_map[subject_json_path]
-    procedures_metadata = metadata_map[procedures_json_path]
-    processing_metadata = metadata_map[processing_json_path]
-    if ads_2:
-        logging.info("Found AIND data schema version 2.x metadata files")
-        session_metadata = metadata_map[acquisition_json_path]
+    data_description = metadata_map[data_path / "data_description.json"]
+    subject_metadata = metadata_map[data_path / "subject.json"]
+    procedures_metadata = metadata_map[data_path / "procedures.json"]
+    processing_metadata = metadata_map[data_path / "processing.json"]
+    session_metadata = metadata_map[session_or_acquisition_path]
 
-    else:
-        session_metadata = metadata_map[session_json_path]
-    nwb_subject = get_subject_nwb_object(
-        data_description, subject_metadata
-    )
+    nwb_subject = get_subject_nwb_object(data_description, subject_metadata)
     session_start_date_time = _get_session_start_date_time(
         data_description["creation_time"]
     )
-    experimenters = []
-    for procedure in procedures_metadata.get("subject_procedures", []):
-        experimenters.append(procedure.get("experimenter_full_name"))
 
-    if data_description.get("investigators") is not None:
-        for investigator in data_description.get("investigators", []):
-            full_name = investigator.get("name", "No Experimenter Name")
-            experimenters.append(full_name)
+    experimenters = [
+        procedure.get("experimenter_full_name")
+        for procedure in procedures_metadata.get("subject_procedures", [])
+    ]
+    experimenters += [
+        investigator.get("name", "No Experimenter Name")
+        for investigator in data_description.get("investigators", [])
+    ]
 
-    generation_code = []
-    processing_pipeline = processing_metadata.get("processing_pipeline", {})
-    if (
-        processing_pipeline.get("data_processes")
-        is not None
-    ):
-        for process in processing_pipeline.get(
-            "data_processes", "Unknown"
-        ):
-            generation_code.append(process.get("code"))
+    generation_code = [
+        process.get("code")
+        for process in processing_metadata.get("processing_pipeline", {}).get(
+            "data_processes", []
+        )
+    ]
 
-    experiment_description = ""
     project_name = data_description.get("project", "Unknown Project")
     session_type = session_metadata.get("session_type", "No specified")
-    modalities = []
-
-    if data_description.get("modality") is not None:
-        for modality in data_description.get("modality", []):
-            modalities.append(modality.get("name", ""))
+    modalities = [
+        modality.get("name", "")
+        for modality in data_description.get("modality", [])
+    ]
 
     experiment_description = (
-        "A "
-        + project_name
-        + " "
-        + " experiment performed using "
-        + session_type
-        + " behavior. "
+        f"A {project_name} experiment performed using {session_type} behavior."
     )
-
-    if len(modalities) > 0:
+    if modalities:
         experiment_description += (
-            "Experiment includes " + ", ".join(modalities) + " modalities."
+            " Experiment includes " + ", ".join(modalities) + " modalities."
         )
 
     nwb_file = NdxEventsNWBFile(
