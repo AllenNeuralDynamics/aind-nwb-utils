@@ -523,7 +523,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
         institution=data_description["institution"].get("name", None),
         subject=nwb_subject,
         session_id=data_description["name"],
-        experimenter=experimenters,
+        experimenter="Test make sure to remove",
         lab=data_description.get("group", ""),
     )
 
