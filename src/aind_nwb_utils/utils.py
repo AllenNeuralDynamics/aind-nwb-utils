@@ -492,9 +492,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
         data_description["creation_time"]
     )
 
-    experimenters = [
-        ", ".join(session_metadata.get("experimenter_full_name", "")) or "Unknown"
-    ]
+    experimenters = ", ".join(session_metadata.get("experimenter_full_name", "")) or "Unknown"
 
     generation_code = [
         process.get("code")
