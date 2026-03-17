@@ -484,7 +484,6 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
 
     data_description = metadata_map[data_path / "data_description.json"]
     subject_metadata = metadata_map[data_path / "subject.json"]
-    procedures_metadata = metadata_map[data_path / "procedures.json"]
     processing_metadata = metadata_map[data_path / "processing.json"]
     session_metadata = metadata_map[session_or_acquisition_path]
 
@@ -494,12 +493,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     )
 
     experimenters = [
-        procedure.get("experimenter_full_name")
-        for procedure in procedures_metadata.get("subject_procedures", [])
-    ]
-    experimenters += [
-        investigator.get("name", "No Experimenter Name")
-        for investigator in data_description.get("investigators", [])
+        ", ".join(session_metadata.get("experimenter_full_name"), "") or "Unknown"
     ]
 
     generation_code = [
