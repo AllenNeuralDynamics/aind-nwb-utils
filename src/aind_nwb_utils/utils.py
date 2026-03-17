@@ -493,7 +493,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     )
 
     experimenters = [
-        ", ".join(session_metadata.get("experimenter_full_name"), "") or "Unknown"
+        ", ".join(session_metadata.get("experimenter_full_name", "")) or "Unknown"
     ]
 
     generation_code = [
