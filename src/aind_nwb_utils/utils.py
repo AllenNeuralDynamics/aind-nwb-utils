@@ -491,10 +491,6 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     session_start_date_time = _get_session_start_date_time(
         data_description["creation_time"]
     )
-
-    experimenters = [
-        ", ".join(session_metadata.get("experimenter_full_name", "")) or "Unknown"
-    ]
     
     generation_code = [
         process.get("code")
@@ -525,7 +521,6 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
         institution=data_description["institution"].get("name", None),
         subject=nwb_subject,
         session_id=data_description["name"],
-        experimenter=experimenters,
         lab=data_description.get("group", ""),
     )
 
