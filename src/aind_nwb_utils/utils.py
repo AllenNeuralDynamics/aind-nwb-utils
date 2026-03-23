@@ -491,7 +491,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     session_start_date_time = _get_session_start_date_time(
         data_description["creation_time"]
     )
-    
+
     generation_code = [
         process.get("code")
         for process in processing_metadata.get("processing_pipeline", {}).get(
