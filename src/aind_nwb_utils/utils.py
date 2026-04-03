@@ -543,10 +543,10 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
         session_description=experiment_description,
         identifier=str(uuid.uuid4()),
         session_start_time=session_start_date_time,
-        experimenter=str(experimenters),
         institution=data_description["institution"].get("name", None),
         subject=nwb_subject,
         session_id=data_description["name"],
+        experimenter=str(experimenters),
         lab=data_description.get("group", ""),
     )
 
