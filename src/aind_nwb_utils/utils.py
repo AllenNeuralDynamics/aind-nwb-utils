@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Iterable, Union
 
 import numpy as np
+import zarr
 import pynwb
 import pytz
 from hdmf_zarr import NWBZarrIO
@@ -281,6 +282,22 @@ def merge_nwb_attribute(
             _handle_time_intervals(main_io, attr, field_name)
         elif isinstance(attr, EventsTable):
             _handle_events_table(main_io, attr, field_name)
+        elif isinstance(attr, tuple):
+            main_attr = getattr(main_io, field_name, None)
+            if main_attr != attr:
+                logger.warning(
+                    f"Attribute mismatch for '{field_name}': "
+                    f"main={main_attr!r}, sub={attr!r}. Using main NWB \
+                        file's value."
+                )
+        elif isinstance(attr, zarr.core.Array):
+            main_attr = getattr(main_io, field_name, None)
+            if main_attr is not None and list(main_attr) != list(attr):
+                logger.warning(
+                    f"Attribute mismatch for '{field_name}': "
+                    f"main={list(main_attr)!r}, sub={list(attr)!r}. \
+                        Using main NWB file's value."
+                )
         elif isinstance(attr, dict) or hasattr(attr, "keys"):
             _handle_dict_like_attributes(main_io, attr, field_name)
         else:
