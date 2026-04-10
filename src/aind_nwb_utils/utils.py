@@ -435,7 +435,9 @@ def open_metadata_jsons(
         if path.exists():
             metadata_map[path] = open_metadata_json(path)
         else:
-            raise ValueError("Missing metadata file: ")
+            raise ValueError(
+                f"Missing metadata file: {path.stem}"
+            )
 
     return metadata_map
 
@@ -493,7 +495,6 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
         [
             data_path / "data_description.json",
             data_path / "subject.json",
-            data_path / "procedures.json",
             data_path / "processing.json",
             session_or_acquisition_path,
         ]
