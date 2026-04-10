@@ -435,7 +435,9 @@ def open_metadata_jsons(
         if path.exists():
             metadata_map[path] = open_metadata_json(path)
         else:
-            raise ValueError("Missing metadata file: ")
+            raise ValueError(
+                f"Missing metadata file: {path.stem}"
+            )
 
     return metadata_map
 
