@@ -45,6 +45,12 @@ def determine_io(nwb_path: Path) -> Union[NWBHDF5IO, NWBZarrIO]:
     Union[NWBHDF5IO, NWBZarrIO]
         the appropriate io object
     """
-    if os.path.isdir(nwb_path) or str(nwb_path).startswith("s3://"):
+    path_str = str(nwb_path)
+    if path_str.startswith("s3://"):
+        if path_str.endswith(".nwb"):
+            return NWBHDF5IO
+        if path_str.endswith(".zarr"):
+            return NWBZarrIO
+    if os.path.isdir(nwb_path):
         return NWBZarrIO
     return NWBHDF5IO
