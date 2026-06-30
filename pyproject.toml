@@ -21,7 +21,9 @@ dependencies = [
     'ndx-events',
     'hdmf-zarr',
     'xarray',
-    'pytz'
+    'pytz',
+    'fsspec',
+    's3fs'
 ]
 
 [project.optional-dependencies]
