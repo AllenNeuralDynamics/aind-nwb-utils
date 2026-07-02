@@ -7,8 +7,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, create_autospec
 
 import numpy as np
-from ndx_events import EventsTable
 from pynwb import NWBFile, TimeSeries
+from pynwb.event import EventsTable
 from pynwb.base import (  # example NWB container
     Images,
     ProcessingModule,
