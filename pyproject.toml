@@ -17,8 +17,7 @@ readme = "README.md"
 dynamic = ["version"]
 
 dependencies = [
-    'pynwb',
-    'ndx-events',
+    'pynwb>=4.0.0',
     'hdmf-zarr',
     'xarray',
     'pytz',
