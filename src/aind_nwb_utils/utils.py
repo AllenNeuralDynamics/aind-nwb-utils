@@ -14,12 +14,9 @@ import zarr
 import pynwb
 import pytz
 from hdmf_zarr import NWBZarrIO
-from ndx_events import (
-    EventsTable,
-    NdxEventsNWBFile,
-)
 from packaging.version import parse
-from pynwb import NWBHDF5IO, TimeSeries
+from pynwb import NWBHDF5IO, NWBFile, TimeSeries
+from pynwb.event import EventsTable
 from pynwb.base import VectorData
 from pynwb.file import Device, Subject
 
@@ -531,7 +528,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
             " Experiment includes " + ", ".join(modalities) + " modalities."
         )
 
-    nwb_file = NdxEventsNWBFile(
+    nwb_file = NWBFile(
         session_description=experiment_description,
         identifier=str(uuid.uuid4()),
         session_start_time=session_start_date_time,
