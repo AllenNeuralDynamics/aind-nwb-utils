@@ -502,8 +502,11 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     session_metadata = metadata_map[session_or_acquisition_path]
 
     nwb_subject = get_subject_nwb_object(data_description, subject_metadata)
+    start_time_key = (
+        "acquisition_start_time" if ads_2 else "session_start_time"
+    )
     session_start_date_time = _get_session_start_date_time(
-        data_description["creation_time"]
+        session_metadata[start_time_key]
     )
 
     generation_code = [
