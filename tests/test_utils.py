@@ -458,9 +458,48 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(isinstance(subject_object, Subject))
 
     def test_create_nwb_base_file(self):
-        """Test create_nwb_base_file"""
+        """Test create_nwb_base_file with ADS 1.x (session.json)"""
         nwb_file_base = create_base_nwb_file(Path("tests/resources"))
         self.assertTrue(isinstance(nwb_file_base, NWBFile))
+
+    def test_create_nwb_base_file_ads2(self):
+        """Test create_nwb_base_file with ADS 2.x (acquisition.json).
+
+        Note: data_description/subject/procedures/processing are ADS 1.x
+        fixtures reused for convenience; only acquisition.json is ADS 2.x.
+        """
+        import json
+        from unittest.mock import patch
+
+        ads2_path = Path("tests/resources/ads2")
+        with open(ads2_path / "acquisition.json") as f:
+            acquisition = json.load(f)
+        with open(Path("tests/resources/data_description.json")) as f:
+            data_description = json.load(f)
+        with open(Path("tests/resources/subject_2_0.json")) as f:
+            subject = json.load(f)
+        with open(Path("tests/resources/procedures.json")) as f:
+            procedures = json.load(f)
+        with open(Path("tests/resources/processing.json")) as f:
+            processing = json.load(f)
+
+        metadata_map = {
+            ads2_path / "data_description.json": data_description,
+            ads2_path / "subject.json": subject,
+            ads2_path / "procedures.json": procedures,
+            ads2_path / "processing.json": processing,
+            ads2_path / "acquisition.json": acquisition,
+        }
+
+        with patch(
+            "aind_nwb_utils.utils.open_metadata_jsons",
+            return_value=metadata_map,
+        ):
+            nwb_file_base = create_base_nwb_file(ads2_path)
+
+        self.assertIsInstance(nwb_file_base, NWBFile)
+        session_start = nwb_file_base.session_start_time
+        self.assertIsNotNone(session_start)
 
     def test_get_ephys_devices_from_metadata_ads2(self):
         """Test get_ephys_devices_from_metadata with aind-data-schema v2.x"""
