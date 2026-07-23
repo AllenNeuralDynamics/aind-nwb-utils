@@ -516,8 +516,10 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
         )
     ]
 
-    project_name = data_description.get("project", "Unknown Project")
-    session_type = session_metadata.get("session_type", "No specified")
+    project_name = data_description.get("project_name", "Unknown Project")
+    session_type = session_metadata.get("acquisition_type", "No specified") if ads_2 else session_metadata.get(
+        "session_type", "No specified"
+    )
     modalities = [
         modality.get("name", "")
         for modality in data_description.get("modality", [])

@@ -459,8 +459,18 @@ class TestUtils(unittest.TestCase):
 
     def test_create_nwb_base_file(self):
         """Test create_nwb_base_file with ADS 1.x (session.json)"""
+        with open(Path("tests/resources/data_description.json")) as f:
+            data_description = json.load(f)
+        with open(Path("tests/resources/session.json")) as f:
+            session_metadata = json.load(f)
+        project_name = data_description.get("project_name", "Unknown Project")
+        session_type = session_metadata.get("session_type", "No specified")
+
         nwb_file_base = create_base_nwb_file(Path("tests/resources"))
-        self.assertTrue(isinstance(nwb_file_base, NWBFile))
+
+        self.assertIsInstance(nwb_file_base, NWBFile)
+        self.assertIn(project_name, nwb_file_base.session_description)
+        self.assertIn(session_type, nwb_file_base.session_description)
 
     def test_create_nwb_base_file_ads2(self):
         """Test create_nwb_base_file with ADS 2.x (acquisition.json).
@@ -497,9 +507,13 @@ class TestUtils(unittest.TestCase):
         ):
             nwb_file_base = create_base_nwb_file(ads2_path)
 
+        acquisition_type = acquisition.get("acquisition_type", "No specified")
+        project_name = data_description.get("project_name", "Unknown Project")
+
         self.assertIsInstance(nwb_file_base, NWBFile)
-        session_start = nwb_file_base.session_start_time
-        self.assertIsNotNone(session_start)
+        self.assertIsNotNone(nwb_file_base.session_start_time)
+        self.assertIn(project_name, nwb_file_base.session_description)
+        self.assertIn(acquisition_type, nwb_file_base.session_description)
 
     def test_get_ephys_devices_from_metadata_ads2(self):
         """Test get_ephys_devices_from_metadata with aind-data-schema v2.x"""
