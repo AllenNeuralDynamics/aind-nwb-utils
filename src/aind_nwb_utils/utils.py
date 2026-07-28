@@ -6,18 +6,19 @@ import logging
 import uuid
 import warnings
 from datetime import datetime as dt
+from importlib.metadata import version as package_version
 from pathlib import Path
 from typing import Any, Iterable, Union
 
 import numpy as np
-import zarr
 import pynwb
 import pytz
+import zarr
 from hdmf_zarr import NWBZarrIO
 from packaging.version import parse
 from pynwb import NWBHDF5IO, NWBFile, TimeSeries
-from pynwb.event import EventsTable
 from pynwb.base import VectorData
+from pynwb.event import EventsTable
 from pynwb.file import Device, Subject
 
 logger = logging.getLogger(__name__)
@@ -457,6 +458,38 @@ def open_metadata_json(metadata_path: Path) -> dict[str, Any]:
     return metadata
 
 
+def _get_generation_code(
+    processing_metadata: dict[str, Any],
+) -> list[list[str]]:
+    """Return software name and version pairs used to generate the NWB file.
+
+    Parameters
+    ----------
+    processing_metadata : dict[str, Any]
+        AIND processing metadata in ADS 1.x or 2.x format.
+
+    Returns
+    -------
+    list[list[str]]
+        Software package name and version pairs.
+    """
+    generation_code = [["aind-nwb-utils", package_version("aind-nwb-utils")]]
+    legacy_pipeline = processing_metadata.get("processing_pipeline", {})
+    data_processes = processing_metadata.get(
+        "data_processes", legacy_pipeline.get("data_processes", [])
+    )
+
+    for process in data_processes:
+        code = process.get("code") or {}
+        name = code.get("name")
+        version = code.get("version")
+        entry = [str(name), str(version)]
+        if name and version and entry not in generation_code:
+            generation_code.append(entry)
+
+    return generation_code
+
+
 def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     """
     Creates the base nwb file given the path to the metadata files
@@ -491,15 +524,19 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
             data_path / "data_description.json",
             data_path / "subject.json",
             data_path / "procedures.json",
-            data_path / "processing.json",
             session_or_acquisition_path,
         ]
     )
 
     data_description = metadata_map[data_path / "data_description.json"]
     subject_metadata = metadata_map[data_path / "subject.json"]
-    processing_metadata = metadata_map[data_path / "processing.json"]
     session_metadata = metadata_map[session_or_acquisition_path]
+    processing_json_path = data_path / "processing.json"
+    processing_metadata = (
+        open_metadata_json(processing_json_path)
+        if processing_json_path.exists()
+        else {}
+    )
 
     nwb_subject = get_subject_nwb_object(data_description, subject_metadata)
     start_time_key = (
@@ -509,12 +546,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
         session_metadata[start_time_key]
     )
 
-    generation_code = [
-        process.get("code")
-        for process in processing_metadata.get("processing_pipeline", {}).get(
-            "data_processes", []
-        )
-    ]
+    generation_code = _get_generation_code(processing_metadata)
 
     project_name = data_description.get("project_name", "Unknown Project")
     session_type_key = "acquisition_type" if ads_2 else "session_type"

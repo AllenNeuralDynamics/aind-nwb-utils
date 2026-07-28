@@ -2,24 +2,27 @@
 
 import datetime
 import json
+import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, create_autospec
+from unittest.mock import MagicMock, create_autospec, patch
 
+import h5py
 import numpy as np
-from pynwb import NWBFile, TimeSeries
-from pynwb.event import EventsTable
+from pynwb import NWBHDF5IO, NWBFile, TimeSeries
 from pynwb.base import (  # example NWB container
     Images,
     ProcessingModule,
     VectorData,
 )
 from pynwb.epoch import TimeIntervals
+from pynwb.event import EventsTable
 from pynwb.file import Device, Subject
 
 from aind_nwb_utils import NWBCombineIO
 from aind_nwb_utils.nwb_io import determine_io
 from aind_nwb_utils.utils import (
+    _get_generation_code,
     _get_session_start_date_time,
     _handle_events_table,
     _handle_time_intervals,
@@ -472,15 +475,40 @@ class TestUtils(unittest.TestCase):
         self.assertIn(project_name, nwb_file_base.session_description)
         self.assertIn(session_type, nwb_file_base.session_description)
 
+        with tempfile.NamedTemporaryFile(suffix=".nwb") as nwb_file:
+            with NWBHDF5IO(nwb_file.name, "w") as nwb_io:
+                nwb_io.write(nwb_file_base)
+            with h5py.File(nwb_file.name, "r") as h5_file:
+                self.assertEqual(
+                    h5_file["general/was_generated_by"].shape,
+                    (1, 2),
+                )
+
+    @patch(
+        "aind_nwb_utils.utils.package_version",
+        return_value="0.2.7",
+    )
+    def test_get_generation_code(self, mock_package_version):
+        """Test generation code across ADS processing metadata versions."""
+        code = {"name": "producer", "version": "1.2.3"}
+        ads_1 = {"processing_pipeline": {"data_processes": [{"code": code}]}}
+        ads_2 = {"data_processes": [{"code": code}, {"code": None}]}
+
+        expected = [
+            ["aind-nwb-utils", "0.2.7"],
+            ["producer", "1.2.3"],
+        ]
+        self.assertEqual(_get_generation_code(ads_1), expected)
+        self.assertEqual(_get_generation_code(ads_2), expected)
+        mock_package_version.assert_called_with("aind-nwb-utils")
+
     def test_create_nwb_base_file_ads2(self):
         """Test create_nwb_base_file with ADS 2.x (acquisition.json).
 
-        Note: data_description/subject/procedures/processing are ADS 1.x
-        fixtures reused for convenience; only acquisition.json is ADS 2.x.
+        Note: data_description/subject/procedures are ADS 1.x fixtures reused
+        for convenience; only acquisition.json is ADS 2.x. The ADS 2.x
+        fixture has no processing.json.
         """
-        import json
-        from unittest.mock import patch
-
         ads2_path = Path("tests/resources/ads2")
         with open(ads2_path / "acquisition.json") as f:
             acquisition = json.load(f)
@@ -490,14 +518,11 @@ class TestUtils(unittest.TestCase):
             subject = json.load(f)
         with open(Path("tests/resources/procedures.json")) as f:
             procedures = json.load(f)
-        with open(Path("tests/resources/processing.json")) as f:
-            processing = json.load(f)
 
         metadata_map = {
             ads2_path / "data_description.json": data_description,
             ads2_path / "subject.json": subject,
             ads2_path / "procedures.json": procedures,
-            ads2_path / "processing.json": processing,
             ads2_path / "acquisition.json": acquisition,
         }
 
@@ -514,6 +539,10 @@ class TestUtils(unittest.TestCase):
         self.assertIsNotNone(nwb_file_base.session_start_time)
         self.assertIn(project_name, nwb_file_base.session_description)
         self.assertIn(acquisition_type, nwb_file_base.session_description)
+        self.assertEqual(
+            nwb_file_base.was_generated_by[0][0],
+            "aind-nwb-utils",
+        )
 
     def test_get_ephys_devices_from_metadata_ads2(self):
         """Test get_ephys_devices_from_metadata with aind-data-schema v2.x"""
