@@ -505,7 +505,7 @@ class TestUtils(unittest.TestCase):
     def test_create_nwb_base_file_ads2(self):
         """Test create_nwb_base_file with ADS 2.x (acquisition.json).
 
-        Note: data_description/subject/procedures are ADS 1.x fixtures reused
+        Note: data_description/subject are ADS 1.x fixtures reused
         for convenience; only acquisition.json is ADS 2.x. The ADS 2.x
         fixture has no processing.json.
         """
@@ -516,13 +516,10 @@ class TestUtils(unittest.TestCase):
             data_description = json.load(f)
         with open(Path("tests/resources/subject_2_0.json")) as f:
             subject = json.load(f)
-        with open(Path("tests/resources/procedures.json")) as f:
-            procedures = json.load(f)
 
         metadata_map = {
             ads2_path / "data_description.json": data_description,
             ads2_path / "subject.json": subject,
-            ads2_path / "procedures.json": procedures,
             ads2_path / "acquisition.json": acquisition,
         }
 
