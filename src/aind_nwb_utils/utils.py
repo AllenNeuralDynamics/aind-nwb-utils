@@ -523,7 +523,6 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
         [
             data_path / "data_description.json",
             data_path / "subject.json",
-            data_path / "procedures.json",
             session_or_acquisition_path,
         ]
     )
