@@ -462,6 +462,8 @@ class TestUtils(unittest.TestCase):
 
     def test_create_nwb_base_file(self):
         """Test create_nwb_base_file with ADS 1.x (session.json)"""
+        import os
+
         with open(Path("tests/resources/data_description.json")) as f:
             data_description = json.load(f)
         with open(Path("tests/resources/session.json")) as f:
@@ -475,14 +477,18 @@ class TestUtils(unittest.TestCase):
         self.assertIn(project_name, nwb_file_base.session_description)
         self.assertIn(session_type, nwb_file_base.session_description)
 
-        with tempfile.NamedTemporaryFile(suffix=".nwb") as nwb_file:
-            with NWBHDF5IO(nwb_file.name, "w") as nwb_io:
+        fd, nwb_path = tempfile.mkstemp(suffix=".nwb")
+        os.close(fd)
+        try:
+            with NWBHDF5IO(nwb_path, "w") as nwb_io:
                 nwb_io.write(nwb_file_base)
-            with h5py.File(nwb_file.name, "r") as h5_file:
+            with h5py.File(nwb_path, "r") as h5_file:
                 self.assertEqual(
                     h5_file["general/was_generated_by"].shape,
                     (1, 2),
                 )
+        finally:
+            os.unlink(nwb_path)
 
     @patch(
         "aind_nwb_utils.utils.package_version",
@@ -591,7 +597,7 @@ class TestUtils(unittest.TestCase):
         mock_main_io.reset_mock()
         mock_time_intervals.reset_mock()
 
-        # Test with field_name != "intervals"
+        # Test with field_name != "intervals" — still routed through intervals
         _handle_time_intervals(
             mock_main_io, mock_time_intervals, "other_field"
         )
@@ -600,7 +606,9 @@ class TestUtils(unittest.TestCase):
         mock_time_intervals.reset_parent.assert_called_once()
         self.assertEqual(mock_time_intervals.parent, mock_main_io)
 
-        mock_main_io.add_time_intervals.assert_not_called()
+        mock_main_io.add_time_intervals.assert_called_once_with(
+            mock_time_intervals
+        )
 
     def test_handle_time_intervals_with_real_objects(self):
         """Test _handle_time_intervals with real NWB objects"""
@@ -653,19 +661,19 @@ class TestUtils(unittest.TestCase):
         # Create a mock NWB file IO object
         mock_main_io = MagicMock()
 
-        # Create mock existing events table
+        # Create mock existing events table with a column object
+        mock_existing_col = MagicMock()
+        mock_existing_col.name = "existing_col"
         mock_existing_table = MagicMock()
-        mock_existing_table.columns = ["existing_col"]
+        mock_existing_table.columns = [mock_existing_col]
         mock_main_io.events = {"test_events": mock_existing_table}
 
-        # Create a mock EventsTable with new columns
+        # Create a mock EventsTable with a new column object
+        mock_new_column = MagicMock()
+        mock_new_column.name = "new_col"
         mock_new_events_table = MagicMock(spec=EventsTable)
         mock_new_events_table.name = "test_events"
-        mock_new_events_table.columns = ["new_col"]
-
-        # Mock the column objects
-        mock_new_column = MagicMock()
-        mock_new_events_table.columns = {"new_col": mock_new_column}
+        mock_new_events_table.columns = [mock_new_column]
 
         # Test merging with existing table
         _handle_events_table(
@@ -680,27 +688,25 @@ class TestUtils(unittest.TestCase):
         # Create a mock NWB file IO object
         mock_main_io = MagicMock()
 
-        # Create mock existing events table with existing column
-        mock_existing_table = MagicMock()
+        # Create mock existing events table with a column object
         mock_existing_column = MagicMock()
+        mock_existing_column.name = "shared_col"
         mock_existing_column.data = MagicMock()  # Mock the data object itself
         mock_existing_column.data.extend = (
             MagicMock()
         )  # Mock the extend method
-        mock_existing_table.columns = ["shared_col"]
+        mock_existing_table = MagicMock()
+        mock_existing_table.columns = [mock_existing_column]
         mock_existing_table.__getitem__.return_value = mock_existing_column
         mock_main_io.events = {"test_events": mock_existing_table}
 
         # Create a mock EventsTable with same column name
+        mock_new_column = MagicMock()
+        mock_new_column.name = "shared_col"
+        mock_new_column.data = [4, 5, 6]
         mock_new_events_table = MagicMock(spec=EventsTable)
         mock_new_events_table.name = "test_events"
-        mock_new_events_table.columns = ["shared_col"]
-
-        # Mock the new column data
-        mock_new_column = MagicMock()
-        mock_new_column.data = [4, 5, 6]
-        mock_new_events_table.__getitem__.return_value = mock_new_column
-        mock_new_events_table.columns = {"shared_col": mock_new_column}
+        mock_new_events_table.columns = [mock_new_column]
 
         # Test merging with existing table
         _handle_events_table(
@@ -721,14 +727,16 @@ class TestUtils(unittest.TestCase):
         # Create a mock NWB file IO object
         mock_main_io = MagicMock()
 
-        # Create mock existing events table
-        mock_existing_table = MagicMock()
+        # Create mock existing events table with a column object
+        mock_existing_col_obj = MagicMock()
+        mock_existing_col_obj.name = "existing_col"
         mock_existing_column = MagicMock()
         mock_existing_column.data = MagicMock()  # Mock the data object itself
         mock_existing_column.data.extend = (
             MagicMock()
         )  # Mock the extend method
-        mock_existing_table.columns = ["existing_col"]
+        mock_existing_table = MagicMock()
+        mock_existing_table.columns = [mock_existing_col_obj]
         mock_existing_table.__getitem__.return_value = mock_existing_column
         mock_main_io.events = {"test_events": mock_existing_table}
 
@@ -736,23 +744,16 @@ class TestUtils(unittest.TestCase):
         mock_new_events_table = MagicMock(spec=EventsTable)
         mock_new_events_table.name = "test_events"
 
-        # Mock columns
+        # Mock columns as a list of column objects with .name
         mock_existing_column_new_data = MagicMock()
+        mock_existing_column_new_data.name = "existing_col"
         mock_existing_column_new_data.data = [4, 5, 6]
         mock_new_column = MagicMock()
-
-        # Setup the columns dictionary
-        mock_new_events_table.columns = {
-            "existing_col": mock_existing_column_new_data,
-            "new_col": mock_new_column,
-        }
-
-        # Mock __getitem__ to return appropriate column
-        def mock_getitem(key):
-            """Mock __getitem__ method for EventsTable."""
-            return mock_new_events_table.columns[key]
-
-        mock_new_events_table.__getitem__.side_effect = mock_getitem
+        mock_new_column.name = "new_col"
+        mock_new_events_table.columns = [
+            mock_existing_column_new_data,
+            mock_new_column,
+        ]
 
         # Test merging with existing table
         _handle_events_table(
