@@ -24,9 +24,40 @@ from pynwb.file import Device, Subject
 logger = logging.getLogger(__name__)
 
 
+# Maps an NWBFile field name to the public method that adds a container to
+# it. Derived from ``NWBFile.__clsconf__``; kept explicit so the public
+# (validating) adders are used rather than the private internal ones.
+NWB_FIELD_ADDERS = {
+    "acquisition": "add_acquisition",
+    "analysis": "add_analysis",
+    "device_models": "add_device_model",
+    "devices": "add_device",
+    "electrode_groups": "add_electrode_group",
+    "events": "add_events_table",
+    "icephys_electrodes": "add_icephys_electrode",
+    "imaging_planes": "add_imaging_plane",
+    "intervals": "add_time_intervals",
+    "lab_meta_data": "add_lab_meta_data",
+    "ogen_sites": "add_ogen_site",
+    "processing": "add_processing_module",
+    "scratch": "add_scratch",
+    "stimulus": "add_stimulus",
+    "stimulus_template": "add_stimulus_template",
+}
+
+# TimeIntervals-valued NWBFile fields that are also exposed through the
+# ``intervals`` dict. Merging them through ``intervals`` is what puts them
+# at /intervals/<name> in the output.
+TIME_INTERVAL_FIELDS = ("intervals", "trials", "epochs", "invalid_times")
+
+
 def is_non_mergeable(attr: Any):
     """
-    Check if an attribute is not suitable for merging into the NWB file.
+    Check if an attribute is a scalar/metadata value rather than a container.
+
+    These are not merged element-wise. The main file's value wins when both
+    files have one; see :func:`_handle_scalar_attribute` for how a value
+    missing from the main file is filled in from a sub file.
 
     Parameters
     ----------
@@ -66,8 +97,11 @@ def cast_timeseries_if_needed(ts_obj):
     ts_obj: TimeSeries or original object
         The original TimeSeries object or a new one with casted data.
     """
-    if not isinstance(ts_obj, TimeSeries):
-        return ts_obj  # Only handle TimeSeries
+    # Only rebuild plain TimeSeries. Rebuilding a subclass as a TimeSeries
+    # would discard its neurodata_type and every extension-specific field,
+    # so extension time series are passed through untouched.
+    if type(ts_obj) is not TimeSeries:
+        return ts_obj
 
     data = ts_obj.data
     if hasattr(data, "dtype") and data.dtype in [np.float64, np.int64]:
@@ -82,12 +116,14 @@ def cast_timeseries_if_needed(ts_obj):
                 rate=ts_obj.rate,
                 conversion=ts_obj.conversion,
                 resolution=ts_obj.resolution,
+                offset=ts_obj.offset,
                 starting_time=ts_obj.starting_time,
                 timestamps=ts_obj.timestamps,
                 description=ts_obj.description,
                 comments=ts_obj.comments,
                 control=ts_obj.control,
                 control_description=ts_obj.control_description,
+                continuity=ts_obj.continuity,
             )
         except Exception as e:
             logger.exception(
@@ -140,23 +176,30 @@ def add_data(
     obj : Any
         The NWB container object to add.
     """
+    existing = getattr(main_io, field, None) or {}
+    if name in existing:
+        logger.info(
+            f"'{name}' already present in {field} of the main NWB file; "
+            "keeping the main file's copy"
+        )
+        return
+
+    adder_name = NWB_FIELD_ADDERS.get(field)
+    if adder_name is None:
+        raise ValueError(f"Unknown attribute type: {field}")
+
+    adder = getattr(main_io, adder_name, None)
+    if adder is None:
+        raise ValueError(
+            f"Cannot merge '{name}' into '{field}': the main NWB file "
+            f"({type(main_io).__name__}) has no {adder_name} method."
+        )
+
+    # Reparent only once we know the object is actually going to be added,
+    # otherwise a skipped object is left detached from its source file.
     obj.reset_parent()
     obj.parent = main_io
-    existing = getattr(main_io, field, {})
-    if name in existing:
-        return
-    if field == "acquisition":
-        main_io.add_acquisition(obj)
-    elif field == "processing":
-        main_io.add_processing_module(obj)
-    elif field == "analysis":
-        main_io.add_analysis(obj)
-    elif field == "intervals":
-        main_io.add_time_intervals(obj)
-    elif field == "events":
-        main_io.add_events_table(obj)
-    else:
-        raise ValueError(f"Unknown attribute type: {field}")
+    adder(obj)
 
 
 def _handle_time_intervals(
@@ -179,10 +222,17 @@ def _handle_time_intervals(
     None
         Merges the TimeIntervals into main_io in place.
     """
-    attr.reset_parent()
-    attr.parent = main_io
-    if field_name == "intervals":
-        main_io.add_time_intervals(attr)
+    if field_name not in TIME_INTERVAL_FIELDS:
+        logger.warning(
+            f"Merging TimeIntervals from unexpected field '{field_name}' "
+            "into intervals"
+        )
+
+    # ``trials``, ``epochs`` and ``invalid_times`` are separate NWBFile
+    # fields but all live under /intervals/<name>, so they are merged
+    # through ``intervals``. Previously only field_name == "intervals" was
+    # added and the rest were reparented and silently dropped.
+    add_data(main_io, "intervals", attr.name, attr)
 
 
 def _handle_events_table(
@@ -205,16 +255,19 @@ def _handle_events_table(
     None
         Merges the EventsTable into main_io in place.
     """
-    if field_name in main_io.events:
+    # ``events`` is keyed by table name, not by the NWBFile field name.
+    existing_tables = getattr(main_io, "events", None) or {}
+    if attr.name in existing_tables:
         # Merge the columns safely
-        existing_table = main_io.events[field_name]
-        for col_name in attr.columns:
-            if col_name not in existing_table.columns:
-                existing_table.add_column(attr.columns[col_name])
+        existing_table = existing_tables[attr.name]
+        existing_names = {col.name for col in existing_table.columns}
+        for column in attr.columns:
+            if column.name not in existing_names:
+                existing_table.add_column(column)
             else:
-                existing_table[col_name].data.extend(attr[col_name].data)
+                existing_table[column.name].data.extend(column.data)
     else:
-        main_io.add_events_table(attr)
+        add_data(main_io, "events", attr.name, attr)
 
 
 def _handle_dict_like_attributes(
@@ -241,14 +294,93 @@ def _handle_dict_like_attributes(
         data = cast_timeseries_if_needed(data)
         data = cast_vectordata_if_needed(data)
 
-        if field_name == "devices":
-            if name not in main_io.devices:
-                data.reset_parent()
-                data.parent = main_io
-                main_io.add_device(data)
-            return
-
+        # NOTE: this used to ``return`` after the first device, which dropped
+        # every remaining device in the sub file. add_data already skips
+        # names the main file has, so devices need no special case.
         add_data(main_io, field_name, name, data)
+
+
+def _handle_scalar_attribute(
+    main_io: Union[NWBHDF5IO, NWBZarrIO], attr: Any, field_name: str
+) -> None:
+    """
+    Handle a scalar/metadata attribute during NWB merge.
+
+    The main file's value always wins when it has one. When the main file is
+    missing the field entirely the sub file's value is copied over instead of
+    being discarded, so session metadata (``institution``, ``experimenter``,
+    ``was_generated_by``, ``subject`` ...) present in only one input still
+    reaches the combined file.
+
+    Parameters
+    ----------
+    main_io : Union[NWBHDF5IO, NWBZarrIO]
+        The destination NWB file IO object.
+    attr : Any
+        The scalar attribute from the sub file.
+    field_name : str
+        The name of the field being processed.
+
+    Returns
+    -------
+    None
+        Updates main_io in place.
+    """
+    main_attr = getattr(main_io, field_name, None)
+
+    if main_attr is not None:
+        if _scalar_values_differ(main_attr, attr):
+            logger.warning(
+                f"Attribute mismatch for '{field_name}': "
+                f"main={main_attr!r}, sub={attr!r}. "
+                "Using main NWB file's value."
+            )
+        return
+
+    if attr is None:
+        return
+
+    if isinstance(attr, pynwb.core.NWBContainer):
+        attr.reset_parent()
+
+    try:
+        setattr(main_io, field_name, attr)
+    except (AttributeError, TypeError) as e:
+        logger.warning(
+            f"Could not copy '{field_name}' from the sub NWB file: {e}"
+        )
+        return
+
+    logger.info(f"Copied '{field_name}' from sub NWB file into the merge")
+
+
+def _scalar_values_differ(main_attr: Any, sub_attr: Any) -> bool:
+    """
+    Compare two scalar attribute values, tolerating array-like containers.
+
+    Parameters
+    ----------
+    main_attr : Any
+        The value from the main NWB file.
+    sub_attr : Any
+        The value from the sub NWB file.
+
+    Returns
+    -------
+    bool
+        True when the two values are not equivalent.
+    """
+    if isinstance(main_attr, (zarr.core.Array, np.ndarray)) or isinstance(
+        sub_attr, (zarr.core.Array, np.ndarray)
+    ):
+        try:
+            return list(main_attr) != list(sub_attr)
+        except Exception:
+            return True
+    try:
+        return bool(main_attr != sub_attr)
+    except Exception:
+        return True
 
 
 def merge_nwb_attribute(
@@ -274,28 +406,13 @@ def merge_nwb_attribute(
         attr = getattr(sub_io, field_name)
 
         if is_non_mergeable(attr):
-            continue
-
-        if isinstance(attr, pynwb.epoch.TimeIntervals):
+            _handle_scalar_attribute(main_io, attr, field_name)
+        elif isinstance(attr, pynwb.epoch.TimeIntervals):
             _handle_time_intervals(main_io, attr, field_name)
         elif isinstance(attr, EventsTable):
             _handle_events_table(main_io, attr, field_name)
-        elif isinstance(attr, tuple):
-            main_attr = getattr(main_io, field_name, None)
-            if main_attr != attr:
-                logger.warning(
-                    f"Attribute mismatch for '{field_name}': "
-                    f"main={main_attr!r}, sub={attr!r}. Using main NWB \
-                        file's value."
-                )
-        elif isinstance(attr, zarr.core.Array):
-            main_attr = getattr(main_io, field_name, None)
-            if main_attr is not None and list(main_attr) != list(attr):
-                logger.warning(
-                    f"Attribute mismatch for '{field_name}': "
-                    f"main={list(main_attr)!r}, sub={list(attr)!r}. \
-                        Using main NWB file's value."
-                )
+        elif isinstance(attr, (tuple, zarr.core.Array, np.ndarray)):
+            _handle_scalar_attribute(main_io, attr, field_name)
         elif isinstance(attr, dict) or hasattr(attr, "keys"):
             _handle_dict_like_attributes(main_io, attr, field_name)
         else:
