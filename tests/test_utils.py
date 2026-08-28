@@ -9,6 +9,8 @@ from unittest.mock import MagicMock, create_autospec, patch
 
 import h5py
 import numpy as np
+from hdmf.common import DynamicTable
+from hdmf_zarr import NWBZarrIO
 from pynwb import NWBHDF5IO, NWBFile, TimeSeries
 from pynwb.base import (  # example NWB container
     Images,
@@ -153,13 +155,90 @@ class TestUtils(unittest.TestCase):
                 eye_nwb = io.read()
             self.assertNotEqual(result_nwb, eye_nwb)
 
+    def assert_merged_content(self, nwb):
+        """Assert the merged file holds both inputs' content.
+
+        Checked against the two real fixtures: the behavior file (main)
+        contributes ``acquisition`` and the ``running_new`` module, the
+        eye-tracking file (sub) contributes the ``eye_tracking`` and
+        ``test_module`` modules. Sizes are asserted so a silently empty or
+        truncated merge fails rather than passing on structure alone.
+
+        Parameters
+        ----------
+        nwb : NWBFile
+            The merged (or merged-and-re-read) NWB file.
+        """
+        self.assertIsInstance(nwb, NWBFile)
+
+        # Metadata: the main file wins on conflicts.
+        self.assertEqual(
+            nwb.session_id, "multiplane-ophys_753906_2025-01-30_11-20-04"
+        )
+        self.assertEqual(nwb.subject.subject_id, "753906")
+
+        # The main file's own content survives the merge.
+        self.assertEqual(
+            set(nwb.acquisition),
+            {
+                "raw_running_wheel_rotation_new",
+                "running_wheel_signal_voltage_new",
+                "running_wheel_supply_voltage_new",
+            },
+        )
+        for name in nwb.acquisition:
+            self.assertEqual(len(nwb.acquisition[name].data), 252600)
+
+        self.assertIn("running_new", nwb.processing)
+        running = nwb.processing["running_new"]
+        self.assertEqual(
+            set(running.data_interfaces),
+            {"running_speed_new", "running_wheel_rotation_new"},
+        )
+        for name in running.data_interfaces:
+            self.assertEqual(len(running[name].data), 252404)
+
+        # The sub file's content was actually added, not silently dropped.
+        self.assertIn("eye_tracking", nwb.processing)
+        self.assertIn("test_module", nwb.processing)
+
+        eye = nwb.processing["eye_tracking"]
+        self.assertEqual(
+            set(eye.data_interfaces), {"eye_tracking", "likely_blink_times"}
+        )
+
+        blinks = eye["likely_blink_times"]
+        self.assertIsInstance(blinks, TimeSeries)
+        self.assertEqual(len(blinks.data), 254508)
+
+        # The eye tracking table must stay a table with all its columns;
+        # a downgraded or half-merged container loses these.
+        table = eye["eye_tracking"]
+        self.assertIsInstance(table, DynamicTable)
+        self.assertEqual(
+            list(table.colnames),
+            [
+                "name",
+                "reference_frame",
+                "data_x",
+                "data_y",
+                "area",
+                "area_raw",
+                "width",
+                "height",
+                "angle",
+                "timestamps",
+            ],
+        )
+        self.assertEqual(len(table), 763524)
+
     def test_combine_nwb_file(self):
-        """Test combine_nwb_file function"""
+        """Merged file keeps main content and gains the sub file's"""
         with NWBCombineIO(self.behavior_fp, [self.eye_tracking_fp]) as (
             result,
             _,
         ):
-            self.assertTrue(isinstance(result, NWBFile))
+            self.assert_merged_content(result)
 
     def test_cast_timeseries_if_needed_float64_to_float32(self):
         """Test casting float64 TimeSeries data to float32"""
@@ -773,7 +852,7 @@ class TestUtils(unittest.TestCase):
         mock_main_io.add_events_table.assert_not_called()
 
     def test_combine_nwb_write_zarr(self):
-        """Test NWBCombineIO.write with zarr format"""
+        """Written zarr store round-trips with the merged content intact"""
         import shutil
         import tempfile
 
@@ -785,11 +864,16 @@ class TestUtils(unittest.TestCase):
             combiner.write(output_path, format="zarr")
             combiner.close()
             self.assertTrue(output_path.exists())
+
+            # Export is where a merged container can quietly lose data, so
+            # re-read and check the content actually made it to disk.
+            with NWBZarrIO(str(output_path), "r") as io:
+                self.assert_merged_content(io.read())
         finally:
             shutil.rmtree(output_dir)
 
     def test_combine_nwb_write_hdf5(self):
-        """Test NWBCombineIO.write with hdf5 format"""
+        """Written hdf5 file round-trips with the merged content intact"""
         import tempfile
 
         with tempfile.NamedTemporaryFile(suffix=".nwb", delete=False) as tmp:
@@ -800,8 +884,174 @@ class TestUtils(unittest.TestCase):
             combiner.write(output_path, format="hdf5")
             combiner.close()
             self.assertTrue(output_path.exists())
+
+            with NWBHDF5IO(str(output_path), "r") as io:
+                self.assert_merged_content(io.read())
         finally:
             output_path.unlink(missing_ok=True)
+
+    def _write_interval_fixtures(self, tmp_dir):
+        """Write a main/sub NWB pair exercising intervals and devices.
+
+        The real fixtures contain no trials, epochs, invalid times or
+        devices, so these are built here. The sub file deliberately holds
+        *two* devices: a merge that stops after the first would drop one.
+
+        Parameters
+        ----------
+        tmp_dir : Path
+            Directory to write the two NWB files into.
+
+        Returns
+        -------
+        tuple[Path, Path]
+            Paths to the main and sub NWB files.
+        """
+        start = datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc)
+
+        main = NWBFile("main session", "main-id", start)
+        main.add_device(Device(name="probe_a", description="main device"))
+        main.add_acquisition(
+            TimeSeries(
+                name="main_series",
+                data=np.arange(5, dtype=np.float32),
+                unit="v",
+                rate=10.0,
+            )
+        )
+
+        sub = NWBFile("sub session", "sub-id", start)
+        sub.add_device(Device(name="probe_b", description="sub device b"))
+        sub.add_device(Device(name="probe_c", description="sub device c"))
+
+        sub.add_trial_column(name="stim", description="stimulus id")
+        for i, stim in enumerate(["a", "b", "c"]):
+            sub.add_trial(
+                start_time=float(i), stop_time=float(i + 1), stim=stim
+            )
+        sub.add_epoch(start_time=0.0, stop_time=3.0, tags=["ep"])
+        sub.add_invalid_time_interval(start_time=1.5, stop_time=1.6)
+
+        module = ProcessingModule(name="sub_mod", description="sub module")
+        module.add(
+            TimeSeries(
+                name="sub_series",
+                data=np.arange(4, dtype=np.float32),
+                unit="v",
+                rate=5.0,
+            )
+        )
+        sub.add_processing_module(module)
+
+        main_fp = tmp_dir / "main.nwb"
+        sub_fp = tmp_dir / "sub.nwb"
+        with NWBHDF5IO(str(main_fp), "w") as io:
+            io.write(main)
+        with NWBHDF5IO(str(sub_fp), "w") as io:
+            io.write(sub)
+        return main_fp, sub_fp
+
+    def assert_intervals_merged(self, nwb):
+        """Assert trials, epochs, invalid times and devices all merged.
+
+        Parameters
+        ----------
+        nwb : NWBFile
+            The merged (or merged-and-re-read) NWB file.
+        """
+        # trials, epochs and invalid_times are separate NWBFile fields but
+        # all live under /intervals/<name>, and the sub file exposes them
+        # both individually and through its ``intervals`` dict. Whichever
+        # path the merge takes, all three must land here exactly once.
+        self.assertEqual(
+            set(nwb.intervals), {"trials", "epochs", "invalid_times"}
+        )
+
+        trials = nwb.intervals["trials"]
+        self.assertEqual(len(trials), 3)
+        self.assertEqual(
+            list(trials.colnames), ["start_time", "stop_time", "stim"]
+        )
+        self.assertEqual([str(s) for s in trials["stim"][:]], ["a", "b", "c"])
+        self.assertEqual(len(nwb.intervals["epochs"]), 1)
+        self.assertEqual(len(nwb.intervals["invalid_times"]), 1)
+
+        # Every device from the sub file, not just the first one.
+        self.assertEqual(set(nwb.devices), {"probe_a", "probe_b", "probe_c"})
+
+        # The main file's acquisition and the sub's module both survive.
+        self.assertIn("main_series", nwb.acquisition)
+        self.assertIn("sub_mod", nwb.processing)
+        self.assertIn("sub_series", nwb.processing["sub_mod"].data_interfaces)
+
+    def test_combine_nwb_merges_intervals_and_devices(self):
+        """Trials, epochs, invalid times and all devices reach the merge"""
+        import shutil
+        import tempfile
+
+        tmp_dir = Path(tempfile.mkdtemp())
+        try:
+            main_fp, sub_fp = self._write_interval_fixtures(tmp_dir)
+
+            combiner = NWBCombineIO(main_fp, [sub_fp])
+            merged = combiner.read()
+            self.assert_intervals_merged(merged)
+
+            output_path = tmp_dir / "combined.nwb"
+            combiner.write(output_path, format="hdf5")
+            combiner.close()
+
+            with NWBHDF5IO(str(output_path), "r") as io:
+                written = io.read()
+                self.assert_intervals_merged(written)
+                # Round-tripping restores the canonical accessors, which
+                # the in-memory merge leaves unset.
+                self.assertEqual(len(written.trials), 3)
+                self.assertEqual(len(written.epochs), 1)
+                self.assertEqual(len(written.invalid_times), 1)
+        finally:
+            shutil.rmtree(tmp_dir)
+
+    def test_combine_nwb_preserves_extension_types(self):
+        """Extension types are not downgraded to their base type
+
+        ``merge_test_extension.nwb`` holds a ``MergeTestLabMetaData`` from
+        the ``ndx-merge-test`` namespace. That namespace is never
+        registered by this test suite, so it can only be resolved through
+        the specs cached in the file. Without that, the container is
+        rebuilt as a plain ``LabMetaData`` and ``tag`` disappears.
+        """
+        import shutil
+        import tempfile
+
+        extension_fp = Path("tests/resources/merge_test_extension.nwb")
+        tmp_dir = Path(tempfile.mkdtemp())
+        try:
+            combiner = NWBCombineIO(self.behavior_fp, [extension_fp])
+            merged = combiner.read()
+
+            meta = merged.lab_meta_data["merge_test_meta"]
+            self.assertEqual(type(meta).__name__, "MergeTestLabMetaData")
+            self.assertEqual(meta.tag, "hello")
+
+            output_path = tmp_dir / "combined.nwb"
+            combiner.write(output_path, format="hdf5")
+            combiner.close()
+
+            # The extension namespace must be cached in the output too,
+            # or the written file cannot be read back as the real type.
+            with h5py.File(output_path, "r") as h5_file:
+                self.assertIn(
+                    "ndx-merge-test", h5_file["specifications"].keys()
+                )
+
+            with NWBHDF5IO(str(output_path), "r") as io:
+                written = io.read()
+                meta = written.lab_meta_data["merge_test_meta"]
+                self.assertEqual(type(meta).__name__, "MergeTestLabMetaData")
+                self.assertEqual(meta.tag, "hello")
+        finally:
+            shutil.rmtree(tmp_dir)
 
     def test_combine_nwb_write_invalid_format(self):
         """Test NWBCombineIO.write raises ValueError for invalid format"""
