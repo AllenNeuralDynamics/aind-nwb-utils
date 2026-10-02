@@ -555,6 +555,9 @@ class TestUtils(unittest.TestCase):
         self.assertIsInstance(nwb_file_base, NWBFile)
         self.assertIn(project_name, nwb_file_base.session_description)
         self.assertIn(session_type, nwb_file_base.session_description)
+        self.assertIn(
+            "Behavior, Behavior videos", nwb_file_base.session_description
+        )
 
         fd, nwb_path = tempfile.mkstemp(suffix=".nwb")
         os.close(fd)
@@ -599,6 +602,7 @@ class TestUtils(unittest.TestCase):
             acquisition = json.load(f)
         with open(Path("tests/resources/data_description.json")) as f:
             data_description = json.load(f)
+        data_description["modalities"] = data_description.pop("modality")
         with open(Path("tests/resources/subject_2_0.json")) as f:
             subject = json.load(f)
 
@@ -621,6 +625,9 @@ class TestUtils(unittest.TestCase):
         self.assertIsNotNone(nwb_file_base.session_start_time)
         self.assertIn(project_name, nwb_file_base.session_description)
         self.assertIn(acquisition_type, nwb_file_base.session_description)
+        self.assertIn(
+            "Behavior, Behavior videos", nwb_file_base.session_description
+        )
         self.assertEqual(
             nwb_file_base.was_generated_by[0][0],
             "aind-nwb-utils",
