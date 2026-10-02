@@ -669,7 +669,7 @@ def create_base_nwb_file(data_path: Path) -> pynwb.NWBFile:
     session_type = session_metadata.get(session_type_key, "No specified")
     modalities = [
         modality.get("name", "")
-        for modality in data_description.get("modality", [])
+        for modality in data_description.get("modalities", [])
     ]
 
     experiment_description = (

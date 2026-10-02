@@ -555,6 +555,7 @@ class TestUtils(unittest.TestCase):
         self.assertIsInstance(nwb_file_base, NWBFile)
         self.assertIn(project_name, nwb_file_base.session_description)
         self.assertIn(session_type, nwb_file_base.session_description)
+        self.assertIn("Behavior, Behavior videos", nwb_file_base.session_description)
 
         fd, nwb_path = tempfile.mkstemp(suffix=".nwb")
         os.close(fd)

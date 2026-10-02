@@ -51,7 +51,7 @@
    ],
    "label": null,
    "license": "CC-BY-4.0",
-   "modality": [
+   "modalities": [
       {
          "abbreviation": "behavior",
          "name": "Behavior"
