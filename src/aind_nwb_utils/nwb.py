@@ -5,8 +5,9 @@ from typing import Union
 from pathlib import Path
 
 import pynwb
+from hdmf.build import BuildManager, TypeMap
 from hdmf_zarr import NWBZarrIO
-from pynwb import NWBHDF5IO
+from pynwb import NWBHDF5IO, get_type_map
 import logging
 
 from aind_nwb_utils.nwb_io import determine_io
@@ -73,6 +74,47 @@ class NWBCombineIO:
         self._stack: ExitStack | None = None
         self._main_io: Union[NWBHDF5IO, NWBZarrIO] | None = None
         self._nwb: pynwb.NWBFile | None = None
+        self._type_map: TypeMap | None = None
+
+    def _build_type_map(self) -> TypeMap:
+        """Build a single TypeMap spanning every input file's namespaces.
+
+        Each file caches the namespaces it was written with. Reading a file
+        with its own cached namespaces gives each IO handle an isolated
+        TypeMap that only knows that file's extensions. Because
+        :meth:`write` exports through the *main* IO's build manager, any
+        container coming from a sub file whose extension is unknown to the
+        main IO gets mapped to the nearest base type it does know: an
+        ``ndx-hed`` ``HedLabMetaData`` silently degrades to a plain
+        ``LabMetaData`` and every extension-specific attribute is dropped.
+
+        Loading all inputs into one TypeMap and sharing it across every
+        handle keeps extension types (and their attributes and cached
+        specs) intact through the merge and the export.
+
+        Returns
+        -------
+        TypeMap
+            A TypeMap with the core namespaces plus every extension
+            namespace cached in the main or sub files.
+        """
+        type_map = get_type_map()
+        for nwb_fp in [self._main_nwb_fp, *self._sub_nwb_paths]:
+            io_class = determine_io(nwb_fp)
+            try:
+                io_class.load_namespaces(type_map, path=str(nwb_fp))
+            except Exception as e:
+                # A file without cached specs is still readable with the
+                # namespaces already loaded, so this is not fatal.
+                logger.warning(
+                    f"Could not load cached namespaces from {nwb_fp}: {e}"
+                )
+
+        logger.info(
+            "Combining with namespaces: "
+            f"{sorted(type_map.namespace_catalog.namespaces)}"
+        )
+        return type_map
 
     def _open(self) -> tuple[pynwb.NWBFile, Union[NWBHDF5IO, NWBZarrIO]]:
         """Open all IO handles and perform the merge."""
@@ -80,18 +122,30 @@ class NWBCombineIO:
             return self._nwb, self._main_io
 
         self._stack = ExitStack()
+        self._type_map = self._build_type_map()
         main_io_class = determine_io(self._main_nwb_fp)
 
         logger.info(self._main_nwb_fp)
         self._main_io = self._stack.enter_context(
-            main_io_class(self._main_nwb_fp, "r")
+            main_io_class(
+                self._main_nwb_fp,
+                "r",
+                manager=BuildManager(self._type_map),
+            )
         )
         self._nwb = self._main_io.read()
 
         for sub_nwb_fp in self._sub_nwb_paths:
             logger.info(sub_nwb_fp)
             sub_io_class = determine_io(sub_nwb_fp)
-            sub_io = self._stack.enter_context(sub_io_class(sub_nwb_fp, "r"))
+            # Each handle needs its own BuildManager (they cache
+            # builder/container pairs per file) but they must share the
+            # TypeMap so containers are interchangeable between them.
+            sub_io = self._stack.enter_context(
+                sub_io_class(
+                    sub_nwb_fp, "r", manager=BuildManager(self._type_map)
+                )
+            )
             sub_nwb = sub_io.read()
             self._nwb = merge_nwb_attribute(self._nwb, sub_nwb)
 
@@ -135,7 +189,12 @@ class NWBCombineIO:
             )
 
         logger.info(f"Writing to disk at {output_path}")
-        with save_io(output_path, "w") as out_io:
+        # The destination handle caches the spec from its own manager, so it
+        # needs the combined TypeMap too or the sub files' extension
+        # namespaces would be missing from the output's /specifications.
+        with save_io(
+            output_path, "w", manager=BuildManager(self._type_map)
+        ) as out_io:
             out_io.export(
                 src_io=self._main_io, write_args=dict(link_data=False)
             )
