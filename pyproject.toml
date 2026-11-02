@@ -18,7 +18,7 @@ dynamic = ["version"]
 
 dependencies = [
     'pynwb>=4.0.0',
-    'hdmf-zarr',
+    'hdmf-zarr<0.14',
     'xarray',
     'pytz',
     'fsspec',
